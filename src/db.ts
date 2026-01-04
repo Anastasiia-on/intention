@@ -142,7 +142,7 @@ export async function recordNotification(
     `,
     [userId, type, date]
   );
-  return result.rowCount > 0;
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function getMonthlySummary(
