@@ -492,7 +492,7 @@ async function showIntentions(ctx: BotContext): Promise<void> {
   const buttons = items.map((item) => [
     Markup.button.callback(trimText(`${item.text} — ${item.dateLabel}`), `intent_select:${item.id}`),
   ]);
-  await ctx.reply("\u200B", Markup.inlineKeyboard(buttons));
+  await ctx.reply(messages.intentionsHeader, Markup.inlineKeyboard(buttons));
 }
 
 async function showCategories(ctx: BotContext): Promise<void> {
