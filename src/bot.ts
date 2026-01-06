@@ -25,7 +25,8 @@ type Step =
   | "awaiting_new_category"
   | "awaiting_edit_text"
   | "awaiting_feedback_text"
-  | "awaiting_feedback_photo";
+  | "awaiting_feedback_photo"
+  | "awaiting_free_text_confirm";
 
 type SessionData = {
   language?: Language;
@@ -34,6 +35,7 @@ type SessionData = {
   feedbackDate?: string;
   categoryMode?: "attach" | "manage";
   preselectedCategoryId?: number;
+  pendingIntentionText?: string;
 };
 
 type BotContext = Context & { session: SessionData };
@@ -270,6 +272,39 @@ export function createBot(token: string): Telegraf<BotContext> {
     await startAddIntention(ctx);
   });
 
+  bot.action("free_text_yes", async (ctx) => {
+    await ctx.answerCbQuery();
+    const user = await requireUser(ctx);
+    if (!user) return;
+    const text = ctx.session.pendingIntentionText?.trim();
+    if (!text) {
+      clearSession(ctx);
+      await ctx.reply(getMessages(user.language).mainMenuTitle, mainMenuKeyboard(user.language));
+      return;
+    }
+    const encrypted = encryptText(text);
+    const intention = await addIntention(user.id, null, encrypted);
+    clearSession(ctx);
+    const messages = getMessages(user.language);
+    await ctx.reply(messages.savedIntention);
+    await ctx.reply(
+      messages.chooseNext,
+      Markup.inlineKeyboard([
+        [Markup.button.callback(messages.chooseDate, `intent_date:${intention.id}`)],
+        [Markup.button.callback(messages.chooseCategory, `intent_cat:${intention.id}`)],
+        [Markup.button.callback(messages.skipForNow, `intent_skip:${intention.id}`)],
+      ])
+    );
+  });
+
+  bot.action("free_text_no", async (ctx) => {
+    await ctx.answerCbQuery();
+    const user = await requireUser(ctx);
+    if (!user) return;
+    clearSession(ctx);
+    await ctx.reply(getMessages(user.language).mainMenuTitle, mainMenuKeyboard(user.language));
+  });
+
   bot.on("photo", async (ctx) => {
     if (ctx.session.step !== "awaiting_feedback_photo") return;
     const user = await requireUser(ctx);
@@ -283,11 +318,26 @@ export function createBot(token: string): Telegraf<BotContext> {
   });
 
   bot.on("text", async (ctx) => {
-    if (!ctx.session.step) return;
     const user = await requireUser(ctx);
     if (!user) return;
     const messages = getMessages(user.language);
     const text = ctx.message.text.trim();
+
+    if (!ctx.session.step) {
+      if (!text || text.startsWith("/")) return;
+      ctx.session.step = "awaiting_free_text_confirm";
+      ctx.session.pendingIntentionText = text;
+      await ctx.reply(
+        messages.freeTextPrompt,
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback(messages.confirmYes, "free_text_yes"),
+            Markup.button.callback(messages.confirmNo, "free_text_no"),
+          ],
+        ])
+      );
+      return;
+    }
 
     if (ctx.session.step === "awaiting_intention_text") {
       if (!text || text.startsWith("/")) {
@@ -312,8 +362,9 @@ export function createBot(token: string): Telegraf<BotContext> {
     }
 
     if (ctx.session.step === "awaiting_date") {
-      if (!isValidDate(text)) {
-        await ctx.reply(messages.invalidDate);
+      const dateError = validateDateInput(text, messages);
+      if (dateError) {
+        await ctx.reply(dateError);
         return;
       }
       const intentionId = ctx.session.intentionId;
@@ -361,6 +412,18 @@ export function createBot(token: string): Telegraf<BotContext> {
       await addFeedback(user.id, date, encrypted, null, null);
       clearSession(ctx);
       await ctx.reply(messages.feedbackSaved, mainMenuKeyboard(user.language));
+    }
+
+    if (ctx.session.step === "awaiting_free_text_confirm") {
+      await ctx.reply(
+        messages.freeTextPrompt,
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback(messages.confirmYes, "free_text_yes"),
+            Markup.button.callback(messages.confirmNo, "free_text_no"),
+          ],
+        ])
+      );
     }
   });
 
@@ -487,10 +550,41 @@ function clearSession(ctx: BotContext): void {
   ctx.session.intentionId = undefined;
   ctx.session.feedbackDate = undefined;
   ctx.session.categoryMode = undefined;
+  ctx.session.pendingIntentionText = undefined;
 }
 
-function isValidDate(input: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(input);
+function validateDateInput(input: string, messages: ReturnType<typeof getMessages>): string | null {
+  const trimmed = input.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return messages.invalidDateFormat;
+  }
+  const [year, month, day] = trimmed.split("-").map((value) => Number(value));
+  if (!isValidCalendarDate(year, month, day)) {
+    return messages.invalidDateCalendar;
+  }
+  const today = getMadridToday();
+  if (trimmed <= today) {
+    return messages.invalidDatePast;
+  }
+  return null;
+}
+
+function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function getMadridToday(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(new Date());
 }
 
 function trimText(text: string, max = 32): string {

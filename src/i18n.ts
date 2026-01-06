@@ -17,7 +17,9 @@ type Messages = {
   chooseDate: string;
   chooseCategory: string;
   skipForNow: string;
-  invalidDate: string;
+  invalidDateFormat: string;
+  invalidDateCalendar: string;
+  invalidDatePast: string;
   dateSaved: string;
   categoryPrompt: string;
   categoryAdded: string;
@@ -52,6 +54,9 @@ type Messages = {
   monthlySummaryFooter: string;
   startNewMonth: string;
   photoReflection: string;
+  freeTextPrompt: string;
+  confirmYes: string;
+  confirmNo: string;
 };
 
 const messages: Record<Language, Messages> = {
@@ -77,7 +82,9 @@ const messages: Record<Language, Messages> = {
     chooseDate: "Choose date",
     chooseCategory: "Choose category",
     skipForNow: "Skip for now",
-    invalidDate: "Please use date format YYYY-MM-DD.",
+    invalidDateFormat: "Please use date format YYYY-MM-DD.",
+    invalidDateCalendar: "That date does not exist. Please enter a real calendar date.",
+    invalidDatePast: "Please choose a date after today (Europe/Madrid).",
     dateSaved: "Date saved.",
     categoryPrompt: "Type a category name.",
     categoryAdded: "Category saved.",
@@ -112,6 +119,9 @@ const messages: Record<Language, Messages> = {
     monthlySummaryFooter: "Ready to start a new month?",
     startNewMonth: "Start new month",
     photoReflection: "Photo reflection",
+    freeTextPrompt: "Do you want to save this as an intention?",
+    confirmYes: "Yes",
+    confirmNo: "No",
   },
   uk: {
     welcome: "Вітаю в Intentions bot",
@@ -135,7 +145,9 @@ const messages: Record<Language, Messages> = {
     chooseDate: "Обрати дату",
     chooseCategory: "Обрати категорію",
     skipForNow: "Поки що пропустити",
-    invalidDate: "Будь ласка, формат дати YYYY-MM-DD.",
+    invalidDateFormat: "Будь ласка, формат дати YYYY-MM-DD.",
+    invalidDateCalendar: "Такої дати не існує. Введи коректну календарну дату.",
+    invalidDatePast: "Обери дату пізніше за сьогодні (Europe/Madrid).",
     dateSaved: "Дату збережено.",
     categoryPrompt: "Напиши назву категорії.",
     categoryAdded: "Категорію збережено.",
@@ -170,6 +182,9 @@ const messages: Record<Language, Messages> = {
     monthlySummaryFooter: "Готовий(а) почати новий місяць?",
     startNewMonth: "Почати новий місяць",
     photoReflection: "Фото-відгук",
+    freeTextPrompt: "Зберегти це як намір?",
+    confirmYes: "Так",
+    confirmNo: "Ні",
   },
 };
 
