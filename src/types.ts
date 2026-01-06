@@ -30,6 +30,11 @@ export type Intention = {
   created_at: string;
 } & EncryptedPayload;
 
+export type IntentionConfig = Intention & {
+  date: string | null;
+  category_name: string | null;
+};
+
 export type Feedback = {
   id: number;
   user_id: number;

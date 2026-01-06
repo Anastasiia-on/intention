@@ -1,28 +1,20 @@
 import { Language } from "./types";
 
 type Messages = {
-  welcome: string;
   intro: string;
   privacy: string;
-  askLanguage: string;
-  mainMenuTitle: string;
   mainMenu: {
     add: string;
     show: string;
     categories: string;
   };
   addPrompt: string;
-  savedIntention: string;
-  chooseNext: string;
   chooseDate: string;
   chooseCategory: string;
-  skipForNow: string;
   invalidDateFormat: string;
   invalidDateCalendar: string;
   invalidDatePast: string;
-  dateSaved: string;
   categoryPrompt: string;
-  categoryAdded: string;
   noIntentions: string;
   noCategories: string;
   intentionsHeader: string;
@@ -37,7 +29,21 @@ type Messages = {
   categoryEmpty: string;
   addFirstIntention: string;
   backToCategories: string;
-  reflectionsPrompt: string;
+  menuLabel: string;
+  addDateAction: string;
+  changeDateAction: string;
+  addCategoryAction: string;
+  changeCategoryAction: string;
+  doneAction: string;
+  configPrompt: string;
+  configDateLabel: string;
+  configCategoryLabel: string;
+  configDateNotSet: string;
+  configCategoryNotSet: string;
+  savedSummaryTitle: string;
+  savedSummaryIntention: string;
+  savedSummaryDate: string;
+  savedSummaryCategory: string;
   feedbackTextPrompt: string;
   photoPrompt: string;
   writeFeedback: string;
@@ -61,7 +67,6 @@ type Messages = {
 
 const messages: Record<Language, Messages> = {
   en: {
-    welcome: "Welcome to Intentions bot",
     intro:
       "Plan your month with gentle intentions and a few mindful check-ins along the way.",
     privacy: [
@@ -69,25 +74,18 @@ const messages: Record<Language, Messages> = {
       "In the database it looks like random symbols",
       "Only you can see the real text here in chat",
     ].join("\n"),
-    askLanguage: "Choose a language to continue",
-    mainMenuTitle: "Main menu",
     mainMenu: {
       add: "Add intention",
       show: "Show my intentions",
       categories: "Show categories",
     },
     addPrompt: "Type your intention text.",
-    savedIntention: "Intention saved.",
-    chooseNext: "What would you like to do next?",
     chooseDate: "Choose date",
     chooseCategory: "Choose category",
-    skipForNow: "Skip for now",
     invalidDateFormat: "Please use date format YYYY-MM-DD.",
     invalidDateCalendar: "That date does not exist. Please enter a real calendar date.",
     invalidDatePast: "Please choose a date after today (Europe/Madrid).",
-    dateSaved: "Date saved.",
     categoryPrompt: "Type a category name.",
-    categoryAdded: "Category saved.",
     noIntentions: "No intentions yet.",
     noCategories: "No categories yet.",
     intentionsHeader: "Your intentions",
@@ -102,7 +100,21 @@ const messages: Record<Language, Messages> = {
     categoryEmpty: "This category is empty for now",
     addFirstIntention: "Would you like to add your first intention?",
     backToCategories: "Back to categories",
-    reflectionsPrompt: "How was your day? Would you like to leave a reflection or a photo?",
+    menuLabel: "Menu",
+    addDateAction: "Add date",
+    changeDateAction: "Change date",
+    addCategoryAction: "Add category",
+    changeCategoryAction: "Change category",
+    doneAction: "Done",
+    configPrompt: "What would you like to add",
+    configDateLabel: "date",
+    configCategoryLabel: "category",
+    configDateNotSet: "not set",
+    configCategoryNotSet: "not set",
+    savedSummaryTitle: "Saved",
+    savedSummaryIntention: "intention",
+    savedSummaryDate: "date",
+    savedSummaryCategory: "category",
     feedbackTextPrompt: "Write your reflection text.",
     photoPrompt: "Send a photo for your reflection.",
     writeFeedback: "Write feedback",
@@ -124,7 +136,6 @@ const messages: Record<Language, Messages> = {
     confirmNo: "No",
   },
   uk: {
-    welcome: "Вітаю в Intentions bot",
     intro:
       "Плануй місяць м'яко й усвідомлено — з намірами та короткими підсумками.",
     privacy: [
@@ -132,25 +143,18 @@ const messages: Record<Language, Messages> = {
       "У базі даних це виглядає як набір символів",
       "Справжній текст бачиш тільки ти тут у чаті",
     ].join("\n"),
-    askLanguage: "Обери мову, щоб продовжити",
-    mainMenuTitle: "Головне меню",
     mainMenu: {
       add: "Додати намір",
       show: "Показати мої наміри",
       categories: "Показати категорії",
     },
     addPrompt: "Напиши текст наміру.",
-    savedIntention: "Намір збережено.",
-    chooseNext: "Що зробимо далі?",
     chooseDate: "Обрати дату",
     chooseCategory: "Обрати категорію",
-    skipForNow: "Поки що пропустити",
     invalidDateFormat: "Будь ласка, формат дати YYYY-MM-DD.",
     invalidDateCalendar: "Такої дати не існує. Введи коректну календарну дату.",
     invalidDatePast: "Обери дату пізніше за сьогодні (Europe/Madrid).",
-    dateSaved: "Дату збережено.",
     categoryPrompt: "Напиши назву категорії.",
-    categoryAdded: "Категорію збережено.",
     noIntentions: "Поки що немає намірів.",
     noCategories: "Поки що немає категорій.",
     intentionsHeader: "Твої наміри",
@@ -165,7 +169,21 @@ const messages: Record<Language, Messages> = {
     categoryEmpty: "Ця категорія поки порожня",
     addFirstIntention: "Хочеш додати перший намір?",
     backToCategories: "Назад до категорій",
-    reflectionsPrompt: "Як пройшов твій день? Хочеш залишити відгук або фото?",
+    menuLabel: "Меню",
+    addDateAction: "Додати дату",
+    changeDateAction: "Змінити дату",
+    addCategoryAction: "Додати категорію",
+    changeCategoryAction: "Змінити категорію",
+    doneAction: "Готово",
+    configPrompt: "що додамо до цього наміру",
+    configDateLabel: "дата",
+    configCategoryLabel: "категорія",
+    configDateNotSet: "не задана",
+    configCategoryNotSet: "не задана",
+    savedSummaryTitle: "збережено",
+    savedSummaryIntention: "намір",
+    savedSummaryDate: "дата",
+    savedSummaryCategory: "категорія",
     feedbackTextPrompt: "Напиши текст відгуку.",
     photoPrompt: "Надішли фото для відгуку.",
     writeFeedback: "Написати відгук",

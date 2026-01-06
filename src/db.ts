@@ -1,12 +1,12 @@
 import { Pool } from "pg";
 import { config } from "./config";
-import { Category, EncryptedPayload, Feedback, Intention, Language, User } from "./types";
+import { Category, EncryptedPayload, Feedback, Intention, IntentionConfig, Language, User } from "./types";
 
 if (!config.databaseUrl) {
   throw new Error("DATABASE_URL is required");
 }
 
-export const pool = new Pool({
+const pool = new Pool({
   connectionString: config.databaseUrl,
   ssl: { rejectUnauthorized: false },
 });
@@ -232,6 +232,33 @@ export async function listIntentionsByDate(
     [userId, date]
   );
   return result.rows;
+}
+
+export async function getIntentionConfig(
+  userId: number,
+  intentionId: number
+): Promise<IntentionConfig | null> {
+  const result = await pool.query<IntentionConfig>(
+    `
+    SELECT
+      i.id,
+      i.user_id,
+      i.category_id,
+      i.ciphertext_b64,
+      i.iv_b64,
+      i.auth_tag_b64,
+      i.created_at,
+      MIN(d.date) AS date,
+      c.name AS category_name
+    FROM intentions i
+    LEFT JOIN intention_dates d ON d.intention_id = i.id
+    LEFT JOIN categories c ON c.id = i.category_id
+    WHERE i.user_id = $1 AND i.id = $2
+    GROUP BY i.id, c.name
+    `,
+    [userId, intentionId]
+  );
+  return result.rows[0] || null;
 }
 
 export async function listIntentionsInRange(
