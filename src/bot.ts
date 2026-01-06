@@ -38,7 +38,7 @@ type SessionData = {
 
 type BotContext = Context & { session: SessionData };
 
-const WELCOME_IMAGE_URL = "https://placehold.co/600x400?text=Intentions+Bot";
+const WELCOME_IMAGE_URL = "https://www.ccl.org/wp-content/uploads/2020/11/3-ways-to-live-with-intention-center-for-creative-leadership.png.webp";
 
 export function createBot(token: string): Telegraf<BotContext> {
   const bot = new Telegraf<BotContext>(token);
