@@ -1,0 +1,15 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_time TEXT NOT NULL DEFAULT '20:30';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS evening_time TEXT NOT NULL DEFAULT '21:30';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_time TEXT NOT NULL DEFAULT '19:00';
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  date TEXT NOT NULL,
+  intention_id INTEGER REFERENCES intentions(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, type, date, intention_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);

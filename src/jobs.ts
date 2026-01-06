@@ -1,67 +1,173 @@
 import cron from "node-cron";
 import { Telegraf } from "telegraf";
 import {
-  getIntentionsForUserByDate,
-  getMonthlySummary,
   getUsersByEveningTime,
+  getUsersByMonthlyTime,
   getUsersByReminderTime,
+  listFeedbackInRange,
+  listIntentionsByDate,
+  listIntentionsInRange,
   recordNotification,
 } from "./db";
-import { messages } from "./messages";
-import { addDays, formatDate, getMonthRange, isLastDayOfMonth } from "./utils";
+import { decryptText } from "./crypto/encryption";
+import { getMessages } from "./i18n";
+const TIMEZONE = "Europe/Madrid";
 
-export function startCronJobs(bot: Telegraf): void {
-  cron.schedule("* * * * *", () => {
-    const now = new Date();
-    const time = `${now.getHours().toString().padStart(2, "0")}:${now
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-    runMorningReminders(bot, now, time);
-    runEveningPrompts(bot, now, time);
-    runMonthlySummary(bot, now, time);
-  });
+export function startCronJobs(bot: Telegraf<any>): void {
+  cron.schedule(
+    "* * * * *",
+    () => {
+      const now = new Date();
+      const time = getZonedTimeString(now);
+      void runTomorrowReminders(bot, now, time);
+      void runEveningPrompts(bot, now, time);
+      void runMonthlySummary(bot, now, time);
+    },
+    { timezone: TIMEZONE }
+  );
 }
 
-async function runMorningReminders(bot: Telegraf, now: Date, time: string): Promise<void> {
+async function runTomorrowReminders(bot: Telegraf, now: Date, time: string): Promise<void> {
   const users = await getUsersByReminderTime(time);
   if (users.length === 0) return;
-  const tomorrow = formatDate(addDays(now, 1));
+  const today = getZonedDateString(now);
+  const tomorrow = addDaysToDateString(today, 1);
   for (const user of users) {
-    const titles = await getIntentionsForUserByDate(user.id, tomorrow);
-    if (titles.length === 0) continue;
-    const shouldSend = await recordNotification(user.id, "morning", tomorrow);
+    const intentions = await listIntentionsByDate(user.id, tomorrow);
+    if (intentions.length === 0) continue;
+    const shouldSend = await recordNotification(user.id, "tomorrow", tomorrow, null);
     if (!shouldSend) continue;
-    await bot.telegram.sendMessage(user.telegram_id, messages.reminder(titles));
+    const messages = getMessages(user.language);
+    const lines = intentions.map((item) => `- ${safeDecrypt(item)}`);
+    await bot.telegram.sendMessage(user.telegram_id, [messages.tomorrowReminder, ...lines].join("\n"));
   }
 }
 
 async function runEveningPrompts(bot: Telegraf, now: Date, time: string): Promise<void> {
   const users = await getUsersByEveningTime(time);
   if (users.length === 0) return;
-  const today = formatDate(now);
+  const today = getZonedDateString(now);
   for (const user of users) {
-    const titles = await getIntentionsForUserByDate(user.id, today);
-    if (titles.length === 0) continue;
-    const shouldSend = await recordNotification(user.id, "evening", today);
-    if (!shouldSend) continue;
-    await bot.telegram.sendMessage(user.telegram_id, messages.eveningPrompt(titles));
+    const intentions = await listIntentionsByDate(user.id, today);
+    if (intentions.length === 0) continue;
+    const messages = getMessages(user.language);
+    for (const intention of intentions) {
+      const shouldSend = await recordNotification(user.id, "evening", today, intention.id);
+      if (!shouldSend) continue;
+      const line = safeDecrypt(intention);
+      await bot.telegram.sendMessage(
+        user.telegram_id,
+        [messages.eveningPrompt, `- ${line}`].join("\n")
+      );
+    }
   }
 }
 
 async function runMonthlySummary(bot: Telegraf, now: Date, time: string): Promise<void> {
-  if (!isLastDayOfMonth(now)) return;
-  const users = await getUsersByEveningTime(time);
+  const today = getZonedDateString(now);
+  if (!isLastDayOfMonthFromDateString(today)) return;
+  const users = await getUsersByMonthlyTime(time);
   if (users.length === 0) return;
-  const { start, end } = getMonthRange(now);
+  const { start, end } = getMonthRangeForDateString(today);
   const monthKey = start.slice(0, 7);
   for (const user of users) {
-    const shouldSend = await recordNotification(user.id, "monthly", monthKey);
+    const shouldSend = await recordNotification(user.id, "monthly", monthKey, null);
     if (!shouldSend) continue;
-    const summary = await getMonthlySummary(user.id, start, end);
-    await bot.telegram.sendMessage(
-      user.telegram_id,
-      messages.monthlySummary(summary.intentions, summary.plannedDates, summary.reflections)
-    );
+    const messages = getMessages(user.language);
+    const intentions = await listIntentionsInRange(user.id, start, end);
+    const feedback = await listFeedbackInRange(user.id, start, end);
+    const intentionLines = intentions.map((item) => {
+      const dates = item.dates.length > 0 ? item.dates.join(", ") : "-";
+      return `- ${safeDecrypt(item)} (${dates})`;
+    });
+    const feedbackLines = feedback.map((item) => {
+      const text = safeDecrypt(item);
+      const label = text ? text : messages.photoReflection;
+      return `- ${item.date}: ${label}`;
+    });
+    const body = [
+      messages.monthlySummaryTitle,
+      "",
+      messages.monthlyIntentionsHeader,
+      ...(intentionLines.length > 0 ? intentionLines : ["-"]),
+      "",
+      messages.monthlyFeedbackHeader,
+      ...(feedbackLines.length > 0 ? feedbackLines : ["-"]),
+      "",
+      messages.monthlySummaryFooter,
+    ].join("\n");
+    await bot.telegram.sendMessage(user.telegram_id, body, {
+      reply_markup: {
+        inline_keyboard: [[{ text: messages.startNewMonth, callback_data: "start_new_month" }]],
+      },
+    });
+  }
+}
+
+function getZonedDateString(date: Date): string {
+  const parts = getZonedParts(date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function getZonedTimeString(date: Date): string {
+  const parts = getZonedParts(date);
+  return `${parts.hour}:${parts.minute}`;
+}
+
+function getZonedParts(date: Date): {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+  minute: string;
+} {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  return {
+    year: partValue(parts, "year"),
+    month: partValue(parts, "month"),
+    day: partValue(parts, "day"),
+    hour: partValue(parts, "hour"),
+    minute: partValue(parts, "minute"),
+  };
+}
+
+function partValue(parts: Intl.DateTimeFormatPart[], type: string): string {
+  const value = parts.find((part) => part.type === type)?.value;
+  return value ? value.padStart(2, "0") : "00";
+}
+
+function addDaysToDateString(dateStr: string, days: number): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function isLastDayOfMonthFromDateString(dateStr: string): boolean {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day === lastDay;
+}
+
+function getMonthRangeForDateString(dateStr: string): { start: string; end: string } {
+  const [year, month] = dateStr.split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 0));
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+}
+
+function safeDecrypt(payload: { ciphertext_b64: string; iv_b64: string; auth_tag_b64: string }): string {
+  try {
+    return decryptText(payload);
+  } catch {
+    return "[unable to decrypt]";
   }
 }

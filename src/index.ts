@@ -1,7 +1,6 @@
 import { createBot } from "./bot";
 import { config } from "./config";
 import { startCronJobs } from "./jobs";
-
 if (!config.botToken) {
   throw new Error("BOT_TOKEN is required");
 }
