@@ -31,15 +31,9 @@ type Messages = {
   backToCategories: string;
   menuLabel: string;
   addDateAction: string;
-  changeDateAction: string;
   addCategoryAction: string;
-  changeCategoryAction: string;
   doneAction: string;
   configPrompt: string;
-  configDateLabel: string;
-  configCategoryLabel: string;
-  configDateNotSet: string;
-  configCategoryNotSet: string;
   savedSummaryTitle: string;
   savedSummaryIntention: string;
   savedSummaryDate: string;
@@ -102,15 +96,9 @@ const messages: Record<Language, Messages> = {
     backToCategories: "Back to categories",
     menuLabel: "Menu",
     addDateAction: "Add date",
-    changeDateAction: "Change date",
     addCategoryAction: "Add category",
-    changeCategoryAction: "Change category",
     doneAction: "Done",
     configPrompt: "What would you like to add",
-    configDateLabel: "date",
-    configCategoryLabel: "category",
-    configDateNotSet: "not set",
-    configCategoryNotSet: "not set",
     savedSummaryTitle: "Saved",
     savedSummaryIntention: "intention",
     savedSummaryDate: "date",
@@ -171,15 +159,9 @@ const messages: Record<Language, Messages> = {
     backToCategories: "Назад до категорій",
     menuLabel: "Меню",
     addDateAction: "Додати дату",
-    changeDateAction: "Змінити дату",
     addCategoryAction: "Додати категорію",
-    changeCategoryAction: "Змінити категорію",
     doneAction: "Готово",
     configPrompt: "що додамо до цього наміру",
-    configDateLabel: "дата",
-    configCategoryLabel: "категорія",
-    configDateNotSet: "не задана",
-    configCategoryNotSet: "не задана",
     savedSummaryTitle: "збережено",
     savedSummaryIntention: "намір",
     savedSummaryDate: "дата",

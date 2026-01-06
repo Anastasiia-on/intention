@@ -37,7 +37,6 @@ type SessionData = {
   categoryMode?: "attach" | "manage";
   preselectedCategoryId?: number;
   pendingIntentionText?: string;
-  configMessageId?: number;
 };
 
 type BotContext = Context & { session: SessionData };
@@ -130,7 +129,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
     if (!user) return;
-    setConfigMessageId(ctx);
     ctx.session.step = "awaiting_date";
     ctx.session.intentionId = Number(ctx.match[1]);
     await ctx.reply(getMessages(user.language).chooseDate);
@@ -140,7 +138,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
     if (!user) return;
-    setConfigMessageId(ctx);
     ctx.session.intentionId = Number(ctx.match[1]);
     ctx.session.categoryMode = "attach";
     await showCategoryPicker(ctx, user.language);
@@ -150,7 +147,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
     if (!user) return;
-    setConfigMessageId(ctx);
     const intentionId = Number(ctx.match[1]);
     const config = await getIntentionConfig(user.id, intentionId);
     if (!config) {
@@ -237,7 +233,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
     if (!user) return;
-    setConfigMessageId(ctx);
     ctx.session.step = "awaiting_new_category";
     ctx.session.intentionId = Number(ctx.match[1]);
     ctx.session.categoryMode = "attach";
@@ -494,14 +489,10 @@ async function showIntentions(ctx: BotContext): Promise<void> {
     const dateLabel = item.date ? item.date : messages.noDate;
     return { id: item.id, text, dateLabel };
   });
-  const lines = items.map((item, index) => `${index + 1}. ${item.text} — ${item.dateLabel}`);
   const buttons = items.map((item) => [
-    Markup.button.callback(trimText(item.text), `intent_select:${item.id}`),
+    Markup.button.callback(trimText(`${item.text} — ${item.dateLabel}`), `intent_select:${item.id}`),
   ]);
-  await ctx.reply(
-    [messages.intentionsHeader, ...lines].join("\n"),
-    Markup.inlineKeyboard(buttons)
-  );
+  await ctx.reply(" ", Markup.inlineKeyboard(buttons));
 }
 
 async function showCategories(ctx: BotContext): Promise<void> {
@@ -566,7 +557,6 @@ function clearSession(ctx: BotContext): void {
   ctx.session.categoryMode = undefined;
   ctx.session.pendingIntentionText = undefined;
   ctx.session.preselectedCategoryId = undefined;
-  ctx.session.configMessageId = undefined;
 }
 
 function validateDateInput(input: string, messages: ReturnType<typeof getMessages>): string | null {
@@ -616,13 +606,6 @@ function safeDecrypt(payload: { ciphertext_b64: string; iv_b64: string; auth_tag
   }
 }
 
-function setConfigMessageId(ctx: BotContext): void {
-  const message = ctx.callbackQuery && "message" in ctx.callbackQuery ? ctx.callbackQuery.message : null;
-  if (message && "message_id" in message) {
-    ctx.session.configMessageId = message.message_id;
-  }
-}
-
 async function sendOrUpdateConfig(
   ctx: BotContext,
   userId: number,
@@ -631,32 +614,13 @@ async function sendOrUpdateConfig(
   const config = await getIntentionConfig(userId, intentionId);
   if (!config) return;
   const messages = getMessages(ctx.session.language || "en");
-  const dateLabel = config.date ?? messages.configDateNotSet;
-  const categoryLabel = config.category_name ?? messages.configCategoryNotSet;
-  const text = [
-    messages.configPrompt,
-    `${messages.configDateLabel} — ${dateLabel}`,
-    `${messages.configCategoryLabel} — ${categoryLabel}`,
-  ].join("\n");
-  const dateButton = config.date ? messages.changeDateAction : messages.addDateAction;
-  const categoryButton = config.category_name ? messages.changeCategoryAction : messages.addCategoryAction;
+  const text = messages.configPrompt;
+  const dateButton = messages.addDateAction;
+  const categoryButton = messages.addCategoryAction;
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback(dateButton, `intent_date:${intentionId}`)],
     [Markup.button.callback(categoryButton, `intent_cat:${intentionId}`)],
     [Markup.button.callback(messages.doneAction, `intent_done:${intentionId}`)],
   ]);
-
-  const chatId = ctx.chat?.id;
-  if (chatId && ctx.session.configMessageId) {
-    try {
-      await ctx.telegram.editMessageText(chatId, ctx.session.configMessageId, undefined, text, {
-        reply_markup: keyboard.reply_markup,
-      });
-      return;
-    } catch {
-      ctx.session.configMessageId = undefined;
-    }
-  }
-  const sent = await ctx.reply(text, keyboard);
-  ctx.session.configMessageId = sent.message_id;
+  await ctx.reply(text, keyboard);
 }
