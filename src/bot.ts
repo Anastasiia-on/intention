@@ -1,4 +1,5 @@
 import { Context, Markup, Telegraf, session } from "telegraf";
+import type { TelegramEmoji } from "@telegraf/types";
 import {
   addCategory,
   addFeedback,
@@ -376,6 +377,7 @@ export function createBot(token: string): Telegraf<BotContext> {
       if (!intentionId) return;
       await setIntentionDate(user.id, intentionId, text);
       ctx.session.step = undefined;
+      await tryReact(ctx, "👍");
       return;
     }
 
@@ -389,6 +391,7 @@ export function createBot(token: string): Telegraf<BotContext> {
         await setIntentionCategory(user.id, ctx.session.intentionId, category.id);
         ctx.session.step = undefined;
         ctx.session.categoryMode = undefined;
+        await tryReact(ctx, "👍");
         return;
       }
       clearSession(ctx);
@@ -600,6 +603,14 @@ function safeDecrypt(payload: { ciphertext_b64: string; iv_b64: string; auth_tag
     return decryptText(payload);
   } catch {
     return "[unable to decrypt]";
+  }
+}
+
+async function tryReact(ctx: BotContext, emoji: TelegramEmoji): Promise<void> {
+  try {
+    await ctx.react(emoji);
+  } catch {
+    // Ignore reaction failures (e.g., unsupported by client or bot API).
   }
 }
 
