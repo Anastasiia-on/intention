@@ -226,7 +226,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await setIntentionCategory(user.id, intentionId, categoryId);
     ctx.session.step = undefined;
     ctx.session.categoryMode = undefined;
-    await sendOrUpdateConfig(ctx, user.id, intentionId);
   });
 
   bot.action(/^cat_new:(\d+)$/, async (ctx) => {
@@ -377,7 +376,6 @@ export function createBot(token: string): Telegraf<BotContext> {
       if (!intentionId) return;
       await setIntentionDate(user.id, intentionId, text);
       ctx.session.step = undefined;
-      await sendOrUpdateConfig(ctx, user.id, intentionId);
       return;
     }
 
@@ -391,7 +389,6 @@ export function createBot(token: string): Telegraf<BotContext> {
         await setIntentionCategory(user.id, ctx.session.intentionId, category.id);
         ctx.session.step = undefined;
         ctx.session.categoryMode = undefined;
-        await sendOrUpdateConfig(ctx, user.id, ctx.session.intentionId);
         return;
       }
       clearSession(ctx);
