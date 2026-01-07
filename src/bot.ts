@@ -267,12 +267,13 @@ export function createBot(token: string): Telegraf<BotContext> {
       );
       return;
     }
-    const lines = intentions.map((item) => {
+    const buttons = intentions.map((item) => {
       const text = safeDecrypt(item);
       const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
-      return dateLabel ? `- ${text} (${dateLabel})` : `- ${text}`;
+      const label = dateLabel ? `${text} — ${dateLabel}` : text;
+      return [Markup.button.callback(trimText(label), `intent_select:${item.id}`)];
     });
-    await ctx.reply(lines.join("\n"));
+    await ctx.reply(messages.intentionsHeader, Markup.inlineKeyboard(buttons));
   });
 
   bot.action(/^cat_add_intention:(\d+)$/, async (ctx) => {
