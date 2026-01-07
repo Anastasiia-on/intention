@@ -18,7 +18,7 @@ import {
 } from "./db";
 import { decryptText, encryptText } from "./crypto/encryption";
 import { getMessages, tMainMenu } from "./i18n";
-import { formatDate } from "./utils";
+import { formatDate, formatDateForUser } from "./utils";
 import { Language } from "./types";
 
 type Step =
@@ -157,7 +157,7 @@ export function createBot(token: string): Telegraf<BotContext> {
     }
     const messages = getMessages(user.language);
     const text = safeDecrypt(config);
-    const dateLabel = config.date;
+    const dateLabel = config.date ? formatDateForUser(config.date, user.language) : null;
     const categoryLabel = config.category_name;
     clearSession(ctx);
     const lines = [messages.savedSummaryTitle, `${messages.savedSummaryIntention}: ${text}`];
@@ -183,14 +183,15 @@ export function createBot(token: string): Telegraf<BotContext> {
     if (!item) return;
     const text = safeDecrypt(item);
     const messages = getMessages(user.language);
-    const dateLabel = item.date ? item.date : messages.noDate;
+    const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
     const buttons = [];
     if (!item.date) {
       buttons.push([Markup.button.callback(messages.addDate, `intent_add_date:${intentionId}`)]);
     }
     buttons.push([Markup.button.callback(messages.editIntention, `intent_edit:${intentionId}`)]);
     buttons.push([Markup.button.callback(messages.deleteIntention, `intent_delete:${intentionId}`)]);
-    await ctx.reply(`${text}\n${dateLabel}`, Markup.inlineKeyboard(buttons));
+    const body = dateLabel ? `${text}\n${dateLabel}` : text;
+    await ctx.reply(body, Markup.inlineKeyboard(buttons));
   });
 
   bot.action(/^intent_add_date:(\d+)$/, async (ctx) => {
@@ -268,8 +269,8 @@ export function createBot(token: string): Telegraf<BotContext> {
     }
     const lines = intentions.map((item) => {
       const text = safeDecrypt(item);
-      const dateLabel = item.date ? item.date : messages.noDate;
-      return `- ${text} (${dateLabel})`;
+      const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
+      return dateLabel ? `- ${text} (${dateLabel})` : `- ${text}`;
     });
     await ctx.reply(lines.join("\n"));
   });
@@ -492,11 +493,14 @@ async function showIntentions(ctx: BotContext): Promise<void> {
   }
   const items = intentions.map((item) => {
     const text = safeDecrypt(item);
-    const dateLabel = item.date ? item.date : messages.noDate;
+    const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
     return { id: item.id, text, dateLabel };
   });
   const buttons = items.map((item) => [
-    Markup.button.callback(trimText(`${item.text} — ${item.dateLabel}`), `intent_select:${item.id}`),
+    Markup.button.callback(
+      trimText(item.dateLabel ? `${item.text} — ${item.dateLabel}` : item.text),
+      `intent_select:${item.id}`
+    ),
   ]);
   await ctx.reply(messages.intentionsHeader, Markup.inlineKeyboard(buttons));
 }

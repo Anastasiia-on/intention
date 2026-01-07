@@ -11,6 +11,7 @@ import {
 } from "./db";
 import { decryptText } from "./crypto/encryption";
 import { getMessages } from "./i18n";
+import { formatDateForUser } from "./utils";
 const TIMEZONE = "Europe/Madrid";
 
 export function startCronJobs(bot: Telegraf<any>): void {
@@ -77,13 +78,18 @@ async function runMonthlySummary(bot: Telegraf, now: Date, time: string): Promis
     const intentions = await listIntentionsInRange(user.id, start, end);
     const feedback = await listFeedbackInRange(user.id, start, end);
     const intentionLines = intentions.map((item) => {
-      const dates = item.dates.length > 0 ? item.dates.join(", ") : "-";
-      return `- ${safeDecrypt(item)} (${dates})`;
+      if (item.dates.length === 0) return `- ${safeDecrypt(item)}`;
+      const dates = item.dates
+        .map((date) => formatDateForUser(date, user.language))
+        .filter((date) => date.length > 0)
+        .join(", ");
+      return dates.length > 0 ? `- ${safeDecrypt(item)} (${dates})` : `- ${safeDecrypt(item)}`;
     });
     const feedbackLines = feedback.map((item) => {
       const text = safeDecrypt(item);
       const label = text ? text : messages.photoReflection;
-      return `- ${item.date}: ${label}`;
+      const dateLabel = formatDateForUser(item.date, user.language);
+      return `- ${dateLabel}: ${label}`;
     });
     const body = [
       messages.monthlySummaryTitle,
