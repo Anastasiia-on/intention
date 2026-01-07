@@ -257,6 +257,8 @@ export function createBot(token: string): Telegraf<BotContext> {
     if (!user) return;
     const categoryId = Number(ctx.match[1]);
     const messages = getMessages(user.language);
+    const categories = await listCategories(user.id);
+    const category = categories.find((item) => item.id === categoryId);
     const intentions = await listIntentionsByCategory(user.id, categoryId);
     if (intentions.length === 0) {
       await ctx.reply(
@@ -273,7 +275,12 @@ export function createBot(token: string): Telegraf<BotContext> {
       const label = dateLabel ? `${text} — ${dateLabel}` : text;
       return [Markup.button.callback(trimText(label), `intent_select:${item.id}`)];
     });
-    await ctx.reply(messages.intentionsHeader, Markup.inlineKeyboard(buttons));
+    const header = category?.name
+      ? user.language === "uk"
+        ? `Мої ${category.name} наміри`
+        : `My ${category.name} intentions`
+      : messages.intentionsHeader;
+    await ctx.reply(header, Markup.inlineKeyboard(buttons));
   });
 
   bot.action(/^cat_add_intention:(\d+)$/, async (ctx) => {

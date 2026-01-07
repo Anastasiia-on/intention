@@ -18,7 +18,6 @@ type Messages = {
   noIntentions: string;
   noCategories: string;
   intentionsHeader: string;
-  noDate: string;
   editIntention: string;
   deleteIntention: string;
   addDate: string;
@@ -82,14 +81,13 @@ const messages: Record<Language, Messages> = {
     categoryPrompt: "Type a category name.",
     noIntentions: "No intentions yet.",
     noCategories: "No categories yet.",
-    intentionsHeader: "Your intentions",
-    noDate: "no date yet",
+    intentionsHeader: "My intentions",
     editIntention: "Edit intention",
     deleteIntention: "Delete intention",
     addDate: "Add date",
     intentionUpdated: "Intention updated.",
     intentionDeleted: "Intention deleted.",
-    categoriesHeader: "Your categories",
+    categoriesHeader: "My categories",
     addNewCategory: "Add new category",
     categoryEmpty: "This category is empty for now",
     addFirstIntention: "Would you like to add your first intention?",
@@ -145,14 +143,13 @@ const messages: Record<Language, Messages> = {
     categoryPrompt: "Напиши назву категорії.",
     noIntentions: "Поки що немає намірів.",
     noCategories: "Поки що немає категорій.",
-    intentionsHeader: "Твої наміри",
-    noDate: "ще без дати",
+    intentionsHeader: "Мої наміри",
     editIntention: "Редагувати намір",
     deleteIntention: "Видалити намір",
     addDate: "Додати дату",
     intentionUpdated: "Намір оновлено.",
     intentionDeleted: "Намір видалено.",
-    categoriesHeader: "Твої категорії",
+    categoriesHeader: "Мої категорії",
     addNewCategory: "Додати нову категорию",
     categoryEmpty: "Ця категорія поки порожня",
     addFirstIntention: "Хочеш додати перший намір?",
