@@ -257,20 +257,19 @@ export function createBot(token: string): Telegraf<BotContext> {
     const intentions = await listIntentionsByCategory(user.id, categoryId);
     if (intentions.length === 0) {
       await ctx.reply(
-        `${messages.categoryEmpty}\n${messages.addFirstIntention}`,
+        messages.categoryEmpty,
         Markup.inlineKeyboard([
           [Markup.button.callback(messages.mainMenu.add, `cat_add_intention:${categoryId}`)],
-          [Markup.button.callback(messages.backToCategories, "cat_back")],
         ])
       );
       return;
     }
-    const lines = intentions.map((item) => {
+    const buttons = intentions.map((item) => {
       const text = safeDecrypt(item);
       const dateLabel = item.date ? item.date : messages.noDate;
-      return `- ${text} (${dateLabel})`;
+      return [Markup.button.callback(trimText(`${text} — ${dateLabel}`), `intent_select:${item.id}`)];
     });
-    await ctx.reply(lines.join("\n"), Markup.inlineKeyboard([[Markup.button.callback(messages.backToCategories, "cat_back")]]));
+    await ctx.reply(" ", Markup.inlineKeyboard(buttons));
   });
 
   bot.action(/^cat_add_intention:(\d+)$/, async (ctx) => {
@@ -492,7 +491,7 @@ async function showIntentions(ctx: BotContext): Promise<void> {
   const buttons = items.map((item) => [
     Markup.button.callback(trimText(`${item.text} — ${item.dateLabel}`), `intent_select:${item.id}`),
   ]);
-  await ctx.reply(messages.intentionsHeader, Markup.inlineKeyboard(buttons));
+  await ctx.reply(" ", Markup.inlineKeyboard(buttons));
 }
 
 async function showCategories(ctx: BotContext): Promise<void> {
@@ -510,8 +509,7 @@ async function showCategories(ctx: BotContext): Promise<void> {
   const buttons = categories.map((category) => [
     Markup.button.callback(category.name, `cat_show:${category.id}`),
   ]);
-  buttons.push([Markup.button.callback(messages.addNewCategory, "cat_add")]);
-  await ctx.reply(messages.categoriesHeader, Markup.inlineKeyboard(buttons));
+  await ctx.reply(" ", Markup.inlineKeyboard(buttons));
 }
 
 async function showCategoryPicker(ctx: BotContext, language: Language): Promise<void> {
@@ -624,11 +622,12 @@ async function sendOrUpdateConfig(
   const messages = getMessages(ctx.session.language || "en");
   const text = messages.configPrompt;
   const dateButton = messages.addDateAction;
-  const categoryButton = messages.addCategoryAction;
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback(dateButton, `intent_date:${intentionId}`)],
-    [Markup.button.callback(categoryButton, `intent_cat:${intentionId}`)],
-    [Markup.button.callback(messages.doneAction, `intent_done:${intentionId}`)],
-  ]);
+  const buttons = [[Markup.button.callback(dateButton, `intent_date:${intentionId}`)]];
+  if (!config.category_id) {
+    const categoryButton = messages.addCategoryAction;
+    buttons.push([Markup.button.callback(categoryButton, `intent_cat:${intentionId}`)]);
+  }
+  buttons.push([Markup.button.callback(messages.doneAction, `intent_done:${intentionId}`)]);
+  const keyboard = Markup.inlineKeyboard(buttons);
   await ctx.reply(text, keyboard);
 }
