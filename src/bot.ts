@@ -183,13 +183,14 @@ export function createBot(token: string): Telegraf<BotContext> {
     const text = safeDecrypt(item);
     const messages = getMessages(user.language);
     const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
-    const buttons = [];
     const dateButtonLabel = item.date ? messages.editDate : messages.addDate;
-    buttons.push([Markup.button.callback(dateButtonLabel, `intent_add_date:${intentionId}`)]);
-    buttons.push([Markup.button.callback(messages.editIntention, `intent_edit:${intentionId}`)]);
-    buttons.push([Markup.button.callback(messages.deleteIntention, `intent_delete:${intentionId}`)]);
+    const buttons = [
+      Markup.button.callback(dateButtonLabel, `intent_add_date:${intentionId}`),
+      Markup.button.callback(messages.editIntention, `intent_edit:${intentionId}`),
+      Markup.button.callback(messages.deleteIntention, `intent_delete:${intentionId}`),
+    ];
     const body = dateLabel ? `${text}\n${dateLabel}` : text;
-    await ctx.reply(body, Markup.inlineKeyboard(buttons));
+    await ctx.reply(body, Markup.inlineKeyboard([buttons]));
   });
 
   bot.action(/^intent_add_date:(\d+)$/, async (ctx) => {
@@ -471,7 +472,11 @@ async function handleLanguageSelection(ctx: BotContext, language: Language): Pro
 async function sendIntroAndMenu(ctx: BotContext, language: Language): Promise<void> {
   const messages = getMessages(language);
   await ctx.reply(
-    [messages.intro, "", messages.privacy].join("\n"),
+    messages.intro,
+    mainMenuKeyboard(language)
+  );
+  await ctx.reply(
+    messages.privacy,
     Markup.inlineKeyboard([[Markup.button.callback(messages.learnMore, "learn_more")]])
   );
 }
