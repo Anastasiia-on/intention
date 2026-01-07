@@ -156,20 +156,9 @@ export function createBot(token: string): Telegraf<BotContext> {
       return;
     }
     const messages = getMessages(user.language);
-    const text = safeDecrypt(config);
-    const dateLabel = config.date ? formatDateForUser(config.date, user.language) : null;
-    const categoryLabel = config.category_name;
     clearSession(ctx);
-    const lines = [messages.savedSummaryTitle, `${messages.savedSummaryIntention}: ${text}`];
-    if (dateLabel) {
-      lines.push(`${messages.savedSummaryDate}: ${dateLabel}`);
-    }
-    if (categoryLabel) {
-      lines.push(`${messages.savedSummaryCategory}: ${categoryLabel}`);
-    }
     await ctx.reply(
       messages.savedSummaryTitle,
-      // lines.join("\n"),
       mainMenuKeyboard(user.language)
     );
   });
