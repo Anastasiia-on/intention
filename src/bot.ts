@@ -168,8 +168,9 @@ export function createBot(token: string): Telegraf<BotContext> {
       lines.push(`${messages.savedSummaryCategory}: ${categoryLabel}`);
     }
     await ctx.reply(
-      lines.join("\n"),
-      mainMenuKeyboard(user.language)
+      messages.savedSummaryTitle
+      // lines.join("\n"),
+      // mainMenuKeyboard(user.language)
     );
   });
 
