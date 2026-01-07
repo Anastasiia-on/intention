@@ -28,7 +28,7 @@ type Messages = {
   addNewCategory: string;
   categoryEmpty: string;
   addFirstIntention: string;
-  backToCategories: string;
+  addIntentionAfterCategoryPrompt: string;
   menuLabel: string;
   addDateAction: string;
   addCategoryAction: string;
@@ -93,7 +93,7 @@ const messages: Record<Language, Messages> = {
     addNewCategory: "Add new category",
     categoryEmpty: "This category is empty for now",
     addFirstIntention: "Would you like to add your first intention?",
-    backToCategories: "Back to categories",
+    addIntentionAfterCategoryPrompt: "Add an intention?",
     menuLabel: "Menu",
     addDateAction: "Add date",
     addCategoryAction: "Add category",
@@ -153,10 +153,10 @@ const messages: Record<Language, Messages> = {
     intentionUpdated: "Намір оновлено.",
     intentionDeleted: "Намір видалено.",
     categoriesHeader: "Твої категорії",
-    addNewCategory: "Додати категорію",
+    addNewCategory: "Додати нову категорию",
     categoryEmpty: "Ця категорія поки порожня",
     addFirstIntention: "Хочеш додати перший намір?",
-    backToCategories: "Назад до категорій",
+    addIntentionAfterCategoryPrompt: "Додати намір?",
     menuLabel: "Меню",
     addDateAction: "Додати дату",
     addCategoryAction: "Додати категорію",

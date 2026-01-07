@@ -260,7 +260,6 @@ export function createBot(token: string): Telegraf<BotContext> {
         `${messages.categoryEmpty}\n${messages.addFirstIntention}`,
         Markup.inlineKeyboard([
           [Markup.button.callback(messages.mainMenu.add, `cat_add_intention:${categoryId}`)],
-          [Markup.button.callback(messages.backToCategories, "cat_back")],
         ])
       );
       return;
@@ -270,7 +269,7 @@ export function createBot(token: string): Telegraf<BotContext> {
       const dateLabel = item.date ? item.date : messages.noDate;
       return `- ${text} (${dateLabel})`;
     });
-    await ctx.reply(lines.join("\n"), Markup.inlineKeyboard([[Markup.button.callback(messages.backToCategories, "cat_back")]]));
+    await ctx.reply(lines.join("\n"));
   });
 
   bot.action(/^cat_add_intention:(\d+)$/, async (ctx) => {
@@ -395,7 +394,10 @@ export function createBot(token: string): Telegraf<BotContext> {
         return;
       }
       clearSession(ctx);
-      await showCategories(ctx);
+      await ctx.reply(
+        messages.addIntentionAfterCategoryPrompt,
+        Markup.inlineKeyboard([[Markup.button.callback(messages.mainMenu.add, `cat_add_intention:${category.id}`)]])
+      );
       return;
     }
 
