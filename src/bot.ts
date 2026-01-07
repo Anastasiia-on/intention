@@ -1,5 +1,7 @@
 import { Context, Markup, Telegraf, session } from "telegraf";
 import type { TelegramEmoji } from "@telegraf/types";
+import fs from "node:fs";
+import path from "node:path";
 import {
   addCategory,
   addFeedback,
@@ -42,7 +44,7 @@ type SessionData = {
 
 type BotContext = Context & { session: SessionData };
 
-const WELCOME_IMAGE_URL = "https://www.ccl.org/wp-content/uploads/2020/11/3-ways-to-live-with-intention-center-for-creative-leadership.png.webp";
+const WELCOME_IMAGE_PATH = path.resolve(__dirname, "..", "assets", "welcome.png");
 
 export function createBot(token: string): Telegraf<BotContext> {
   const bot = new Telegraf<BotContext>(token);
@@ -83,6 +85,13 @@ export function createBot(token: string): Telegraf<BotContext> {
 
   bot.hears([tMainMenu("en").categories, tMainMenu("uk").categories], async (ctx) => {
     await showCategories(ctx);
+  });
+  bot.action("learn_more", async (ctx) => {
+    await ctx.answerCbQuery();
+    const user = await requireUser(ctx);
+    if (!user) return;
+    const messages = getMessages(user.language);
+    await ctx.reply(messages.optionalInfo, mainMenuKeyboard(user.language));
   });
 
   bot.command("test_evening", async (ctx) => {
@@ -296,9 +305,11 @@ export function createBot(token: string): Telegraf<BotContext> {
     const user = await requireUser(ctx);
     if (!user) return;
     const text = ctx.session.pendingIntentionText?.trim();
+    console.log(text)
     if (!text) {
+      console.log('no text')
       clearSession(ctx);
-      await ctx.reply(getMessages(user.language).menuLabel, mainMenuKeyboard(user.language));
+      await ctx.reply(getMessages(user.language).otherAction, mainMenuKeyboard(user.language));
       return;
     }
     const encrypted = encryptText(text);
@@ -313,7 +324,7 @@ export function createBot(token: string): Telegraf<BotContext> {
     const user = await requireUser(ctx);
     if (!user) return;
     clearSession(ctx);
-    await ctx.reply(getMessages(user.language).menuLabel, mainMenuKeyboard(user.language));
+    await ctx.reply(getMessages(user.language).otherAction, mainMenuKeyboard(user.language));
   });
 
   bot.on("photo", async (ctx) => {
@@ -442,12 +453,9 @@ export function createBot(token: string): Telegraf<BotContext> {
 }
 
 async function sendLanguageSelection(ctx: BotContext): Promise<void> {
-  await ctx.replyWithPhoto(
-    { url: WELCOME_IMAGE_URL },
-    { caption: "Intentions bot" }
-  );
+  await sendWelcomeImage(ctx, "Welcome to intentions bot ✨");
   await ctx.reply(
-    "Choose a language / Обери мову",
+    "Do you want to change language / Бажаеш змінити мову?",
     Markup.keyboard([["English", "Українська"]]).resize()
   );
 }
@@ -464,7 +472,7 @@ async function sendIntroAndMenu(ctx: BotContext, language: Language): Promise<vo
   const messages = getMessages(language);
   await ctx.reply(
     [messages.intro, "", messages.privacy].join("\n"),
-    mainMenuKeyboard(language)
+    Markup.inlineKeyboard([[Markup.button.callback(messages.learnMore, "learn_more")]])
   );
 }
 
@@ -611,6 +619,11 @@ function safeDecrypt(payload: { ciphertext_b64: string; iv_b64: string; auth_tag
   } catch {
     return "[unable to decrypt]";
   }
+}
+
+async function sendWelcomeImage(ctx: BotContext, caption?: string): Promise<void> {
+  const source = fs.createReadStream(WELCOME_IMAGE_PATH);
+  await ctx.replyWithPhoto({ source }, caption ? { caption } : undefined);
 }
 
 async function tryReact(ctx: BotContext, emoji: TelegramEmoji): Promise<void> {
