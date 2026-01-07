@@ -276,8 +276,7 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
     if (!user) return;
-    ctx.session.preselectedCategoryId = Number(ctx.match[1]);
-    await startAddIntention(ctx);
+    await startAddIntention(ctx, Number(ctx.match[1]));
   });
 
   bot.action("cat_back", async (ctx) => {
@@ -469,10 +468,13 @@ async function sendIntroAndMenu(ctx: BotContext, language: Language): Promise<vo
   );
 }
 
-async function startAddIntention(ctx: BotContext): Promise<void> {
+async function startAddIntention(ctx: BotContext, preselectedCategoryId?: number): Promise<void> {
   const user = await requireUser(ctx);
   if (!user) return;
   clearSession(ctx);
+  if (preselectedCategoryId) {
+    ctx.session.preselectedCategoryId = preselectedCategoryId;
+  }
   ctx.session.step = "awaiting_intention_text";
   await ctx.reply(getMessages(user.language).addPrompt);
 }
