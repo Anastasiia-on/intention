@@ -21,6 +21,7 @@ type Messages = {
   editIntention: string;
   deleteIntention: string;
   addDate: string;
+  editDate: string;
   intentionUpdated: string;
   intentionDeleted: string;
   categoriesHeader: string;
@@ -84,6 +85,7 @@ const messages: Record<Language, Messages> = {
     editIntention: "Edit",
     deleteIntention: "Delete",
     addDate: "Add date",
+    editDate: "Edit date",
     intentionUpdated: "Updated",
     intentionDeleted: "Deleted",
     categoriesHeader: "Categories",
@@ -145,6 +147,7 @@ const messages: Record<Language, Messages> = {
     editIntention: "Редагувати",
     deleteIntention: "Видалити",
     addDate: "Додати дату",
+    editDate: "Змінити дату",
     intentionUpdated: "Оновлено",
     intentionDeleted: "Видалено",
     categoriesHeader: "Категорії",

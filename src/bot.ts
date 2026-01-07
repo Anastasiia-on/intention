@@ -168,9 +168,9 @@ export function createBot(token: string): Telegraf<BotContext> {
       lines.push(`${messages.savedSummaryCategory}: ${categoryLabel}`);
     }
     await ctx.reply(
-      messages.savedSummaryTitle
+      messages.savedSummaryTitle,
       // lines.join("\n"),
-      // mainMenuKeyboard(user.language)
+      mainMenuKeyboard(user.language)
     );
   });
 
@@ -186,9 +186,8 @@ export function createBot(token: string): Telegraf<BotContext> {
     const messages = getMessages(user.language);
     const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
     const buttons = [];
-    if (!item.date) {
-      buttons.push([Markup.button.callback(messages.addDate, `intent_add_date:${intentionId}`)]);
-    }
+    const dateButtonLabel = item.date ? messages.editDate : messages.addDate;
+    buttons.push([Markup.button.callback(dateButtonLabel, `intent_add_date:${intentionId}`)]);
     buttons.push([Markup.button.callback(messages.editIntention, `intent_edit:${intentionId}`)]);
     buttons.push([Markup.button.callback(messages.deleteIntention, `intent_delete:${intentionId}`)]);
     const body = dateLabel ? `${text}\n${dateLabel}` : text;
