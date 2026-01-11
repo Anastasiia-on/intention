@@ -12,6 +12,7 @@ import {
 import { decryptText } from "./crypto/encryption";
 import { getMessages } from "./i18n";
 import { formatDateForUser } from "./utils";
+import { monthlySummaryKeyboard } from "./keyboards/monthlySummary";
 const TIMEZONE = "Europe/Madrid";
 
 export function startCronJobs(bot: Telegraf<any>): void {
@@ -66,7 +67,7 @@ async function runEveningPrompts(bot: Telegraf, now: Date, time: string): Promis
 
 async function runMonthlySummary(bot: Telegraf, now: Date, time: string): Promise<void> {
   const today = getZonedDateString(now);
-  if (!isLastDayOfMonthFromDateString(today)) return;
+  // todo if (!isLastDayOfMonthFromDateString(today)) return;
   const users = await getUsersByMonthlyTime(time);
   if (users.length === 0) return;
   const { start, end } = getMonthRangeForDateString(today);
@@ -102,11 +103,7 @@ async function runMonthlySummary(bot: Telegraf, now: Date, time: string): Promis
       "",
       messages.monthlySummaryFooter,
     ].join("\n");
-    await bot.telegram.sendMessage(user.telegram_id, body, {
-      reply_markup: {
-        inline_keyboard: [[{ text: messages.startNewMonth, callback_data: "start_new_month" }]],
-      },
-    });
+    await bot.telegram.sendMessage(user.telegram_id, body, monthlySummaryKeyboard(user.language));
   }
 }
 

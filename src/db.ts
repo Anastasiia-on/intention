@@ -1,6 +1,15 @@
 import { Pool } from "pg";
 import { config } from "./config";
-import { Category, EncryptedPayload, Feedback, Intention, IntentionConfig, Language, User } from "./types";
+import {
+  Category,
+  EncryptedPayload,
+  Feedback,
+  Intention,
+  IntentionConfig,
+  Language,
+  Reflection,
+  User,
+} from "./types";
 
 if (!config.databaseUrl) {
   throw new Error("DATABASE_URL is required");
@@ -313,6 +322,30 @@ export async function addFeedback(
       encrypted.iv_b64,
       encrypted.auth_tag_b64,
       photoFileId,
+    ]
+  );
+  return result.rows[0];
+}
+
+export async function addReflection(
+  userId: number,
+  date: string,
+  encrypted: EncryptedPayload,
+  photoFileIds: string[]
+): Promise<Reflection> {
+  const result = await pool.query<Reflection>(
+    `
+    INSERT INTO reflections (user_id, date, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, user_id, date, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids, created_at
+    `,
+    [
+      userId,
+      date,
+      encrypted.ciphertext_b64,
+      encrypted.iv_b64,
+      encrypted.auth_tag_b64,
+      JSON.stringify(photoFileIds),
     ]
   );
   return result.rows[0];

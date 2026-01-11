@@ -43,3 +43,11 @@ export type Feedback = {
   photo_file_id: string | null;
   created_at: string;
 } & EncryptedPayload;
+
+export type Reflection = {
+  id: number;
+  user_id: number;
+  date: string;
+  photo_file_ids: string[];
+  created_at: string;
+} & EncryptedPayload;
