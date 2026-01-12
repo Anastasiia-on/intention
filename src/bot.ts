@@ -12,6 +12,7 @@ import {
   setIntentionDate,
   upsertUserLanguage,
   updateIntentionText,
+  updateUserProfile,
 } from "./db";
 import { decryptText, encryptText } from "./crypto/encryption";
 import { getMessages, tMainMenu } from "./i18n";
@@ -322,7 +323,11 @@ async function sendLanguageSelection(ctx: BotContext): Promise<void> {
 async function handleLanguageSelection(ctx: BotContext, language: Language): Promise<void> {
   const telegramId = ctx.from?.id;
   if (!telegramId) return;
-  const user = await upsertUserLanguage(telegramId, language);
+  const user = await upsertUserLanguage(telegramId, language, {
+    firstName: ctx.from?.first_name ?? null,
+    lastName: ctx.from?.last_name ?? null,
+    username: ctx.from?.username ?? null,
+  });
   ctx.session.language = user.language;
   await sendIntroAndMenu(ctx, language);
 }
@@ -405,6 +410,11 @@ async function requireUser(ctx: BotContext): Promise<{ id: number; language: Lan
     await sendLanguageSelection(ctx);
     return null;
   }
+  await updateUserProfile(telegramId, {
+    firstName: ctx.from?.first_name ?? null,
+    lastName: ctx.from?.last_name ?? null,
+    username: ctx.from?.username ?? null,
+  });
   ctx.session.language = user.language;
   return user;
 }

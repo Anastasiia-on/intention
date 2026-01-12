@@ -10,6 +10,9 @@ export type User = {
   id: number;
   telegram_id: number;
   language: Language;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
   reminder_time: string;
   evening_time: string;
   monthly_time: string;

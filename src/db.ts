@@ -20,7 +20,7 @@ const pool = new Pool({
 
 export async function getUserByTelegramId(telegramId: number): Promise<User | null> {
   const result = await pool.query<User>(
-    `SELECT id, telegram_id, language, reminder_time, evening_time, monthly_time, created_at FROM users WHERE telegram_id = $1`,
+    `SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at FROM users WHERE telegram_id = $1`,
     [telegramId]
   );
   return result.rows[0] || null;
@@ -28,25 +28,46 @@ export async function getUserByTelegramId(telegramId: number): Promise<User | nu
 
 export async function upsertUserLanguage(
   telegramId: number,
-  language: Language
+  language: Language,
+  profile: { firstName?: string | null; lastName?: string | null; username?: string | null }
 ): Promise<User> {
   const result = await pool.query<User>(
     `
-    INSERT INTO users (telegram_id, language)
-    VALUES ($1, $2)
+    INSERT INTO users (telegram_id, language, first_name, last_name, username)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (telegram_id)
-    DO UPDATE SET language = EXCLUDED.language
-    RETURNING id, telegram_id, language, reminder_time, evening_time, monthly_time, created_at
+    DO UPDATE SET
+      language = EXCLUDED.language,
+      first_name = EXCLUDED.first_name,
+      last_name = EXCLUDED.last_name,
+      username = EXCLUDED.username
+    RETURNING id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
     `,
-    [telegramId, language]
+    [telegramId, language, profile.firstName ?? null, profile.lastName ?? null, profile.username ?? null]
   );
   return result.rows[0];
+}
+
+export async function updateUserProfile(
+  telegramId: number,
+  profile: { firstName?: string | null; lastName?: string | null; username?: string | null }
+): Promise<void> {
+  await pool.query(
+    `
+    UPDATE users
+    SET first_name = $2,
+        last_name = $3,
+        username = $4
+    WHERE telegram_id = $1
+    `,
+    [telegramId, profile.firstName ?? null, profile.lastName ?? null, profile.username ?? null]
+  );
 }
 
 export async function getUsersByReminderTime(time: string): Promise<User[]> {
   const result = await pool.query<User>(
     `
-    SELECT id, telegram_id, language, reminder_time, evening_time, monthly_time, created_at
+    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
     FROM users
     WHERE reminder_time = $1
     `,
@@ -58,7 +79,7 @@ export async function getUsersByReminderTime(time: string): Promise<User[]> {
 export async function getUsersByEveningTime(time: string): Promise<User[]> {
   const result = await pool.query<User>(
     `
-    SELECT id, telegram_id, language, reminder_time, evening_time, monthly_time, created_at
+    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
     FROM users
     WHERE evening_time = $1
     `,
@@ -70,7 +91,7 @@ export async function getUsersByEveningTime(time: string): Promise<User[]> {
 export async function getUsersByMonthlyTime(time: string): Promise<User[]> {
   const result = await pool.query<User>(
     `
-    SELECT id, telegram_id, language, reminder_time, evening_time, monthly_time, created_at
+    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
     FROM users
     WHERE monthly_time = $1
     `,
