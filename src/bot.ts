@@ -11,6 +11,7 @@ import {
   getUserByTelegramId,
   getIntentionConfig,
   listCategories,
+  listReflectionsForUser,
   listIntentionsByCategory,
   listIntentionsByDate,
   listIntentionsForUser,
@@ -109,6 +110,14 @@ export function createBot(token: string): Telegraf<BotContext> {
     if (!user) return;
     await exitIntentionConfigMode(ctx, user.language, { sendKeyboard: true });
     await showCategories(ctx);
+  });
+
+  bot.hears([tMainMenu("en").reflections, tMainMenu("uk").reflections], async (ctx) => {
+    if (ctx.session.reflectionMode) return;
+    const user = await requireUser(ctx);
+    if (!user) return;
+    await exitIntentionConfigMode(ctx, user.language, { sendKeyboard: true });
+    await showReflections(ctx);
   });
   bot.action(CALLBACKS.learnMore, async (ctx) => {
     await ctx.answerCbQuery();
@@ -579,6 +588,33 @@ async function showCategories(ctx: BotContext): Promise<void> {
   ]);
   buttons.push([Markup.button.callback(messages.addNewCategory, CALLBACKS.catAdd)]);
   await ctx.reply(messages.categoriesHeader, Markup.inlineKeyboard(buttons));
+}
+
+async function showReflections(ctx: BotContext): Promise<void> {
+  const user = await requireUser(ctx);
+  if (!user) return;
+  const messages = getMessages(user.language);
+  const reflections = await listReflectionsForUser(user.id);
+  if (reflections.length === 0) {
+    await ctx.reply(messages.noReflections, mainMenuKeyboard(user.language));
+    return;
+  }
+  await ctx.reply(messages.reflectionsHeader, mainMenuKeyboard(user.language));
+  for (const item of reflections) {
+    const text = safeDecrypt(item);
+    const dateLabel = formatDateForUser(item.date, user.language);
+    const label = text ? text : messages.photoReflection;
+    const caption = `${dateLabel}: ${label}`;
+    if (item.photo_file_ids && item.photo_file_ids.length > 0) {
+      const [first, ...rest] = item.photo_file_ids;
+      await ctx.replyWithPhoto(first, { caption });
+      for (const photoId of rest) {
+        await ctx.replyWithPhoto(photoId);
+      }
+      continue;
+    }
+    await ctx.reply(caption);
+  }
 }
 
 async function showCategoryPicker(ctx: BotContext, language: Language): Promise<void> {

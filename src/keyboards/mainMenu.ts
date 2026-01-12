@@ -4,5 +4,5 @@ import { Language } from "../types";
 
 export function mainMenuKeyboard(language: Language) {
   const menu = tMainMenu(language);
-  return Markup.keyboard([[menu.add], [menu.show], [menu.categories]]).resize();
+  return Markup.keyboard([[menu.add], [menu.show], [menu.categories], [menu.reflections]]).resize();
 }

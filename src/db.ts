@@ -81,6 +81,19 @@ export async function getUsersByMonthlyTime(time: string): Promise<User[]> {
   return result.rows;
 }
 
+export async function listReflectionsForUser(userId: number): Promise<Reflection[]> {
+  const result = await pool.query<Reflection>(
+    `
+    SELECT id, user_id, date, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids, created_at
+    FROM reflections
+    WHERE user_id = $1
+    ORDER BY date DESC, id DESC
+    `,
+    [userId]
+  );
+  return result.rows;
+}
+
 export async function addCategory(userId: number, name: string): Promise<Category> {
   const result = await pool.query<Category>(
     `

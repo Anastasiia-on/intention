@@ -9,6 +9,7 @@ export type Messages = {
     add: string;
     show: string;
     categories: string;
+    reflections: string;
   };
   addPrompt: string;
   chooseDate: string;
@@ -19,7 +20,9 @@ export type Messages = {
   categoryPrompt: string;
   noIntentions: string;
   noCategories: string;
+  noReflections: string;
   intentionsHeader: string;
+  reflectionsHeader: string;
   editIntention: string;
   deleteIntention: string;
   addDate: string;
@@ -55,6 +58,10 @@ export type Messages = {
   monthlyIntentionsHeader: string;
   monthlyFeedbackHeader: string;
   monthlySummaryFooter: string;
+  weeklySummaryTitle: string;
+  weeklyIntentionsHeader: string;
+  weeklyFeedbackHeader: string;
+  weeklySummaryFooter: string;
   startNewMonth: string;
   photoReflection: string;
   freeTextPrompt: string;
@@ -103,6 +110,7 @@ export const messages: Record<Language, Messages> = {
       add: "Add intention",
       show: "My intentions",
       categories: "Categories",
+      reflections: "My reflections",
     },
     addPrompt: "Write your intention",
     chooseDate:
@@ -121,7 +129,9 @@ export const messages: Record<Language, Messages> = {
     categoryPrompt: "Type a category name",
     noIntentions: "No intentions yet",
     noCategories: "No categories yet",
+    noReflections: "No reflections yet",
     intentionsHeader: "My intentions",
+    reflectionsHeader: "My reflections",
     editIntention: "Edit",
     deleteIntention: "Delete",
     addDate: "Add date",
@@ -170,6 +180,12 @@ export const messages: Record<Language, Messages> = {
     monthlyFeedbackHeader: "Reflections",
     monthlySummaryFooter:
       "Ready to start a new month",
+    weeklySummaryTitle:
+      "Week wrap ✨",
+    weeklyIntentionsHeader: "Intentions",
+    weeklyFeedbackHeader: "Reflections",
+    weeklySummaryFooter:
+      "Ready to start a new week",
     startNewMonth: "Start a new month",
     photoReflection: "Photo reflection",
     freeTextPrompt:
@@ -213,6 +229,7 @@ export const messages: Record<Language, Messages> = {
       add: "Додати намір",
       show: "Мої наміри",
       categories: "Категорії",
+      reflections: "Мої відгуки",
     },
     addPrompt: "Напиши свій намір",
     chooseDate: "Додай дату у формат YYYY-MM-DD",
@@ -228,7 +245,9 @@ export const messages: Record<Language, Messages> = {
     categoryPrompt: "Напиши назву категорії",
     noIntentions: "Поки що немає намірів",
     noCategories: "Поки що немає категорій",
+    noReflections: "Поки що немає відгуків",
     intentionsHeader: "Мої наміри",
+    reflectionsHeader: "Мої відгуки",
     editIntention: "Редагувати",
     deleteIntention: "Видалити",
     addDate: "Додати дату",
@@ -277,6 +296,12 @@ export const messages: Record<Language, Messages> = {
     monthlyFeedbackHeader: "Відгуки",
     monthlySummaryFooter:
       "Готова почати новий місяць",
+    weeklySummaryTitle:
+      "Підсумок тижня ✨",
+    weeklyIntentionsHeader: "Наміри",
+    weeklyFeedbackHeader: "Відгуки",
+    weeklySummaryFooter:
+      "Готова почати новий тиждень",
     startNewMonth: "Почати новий місяць",
     photoReflection: "Фото відгук",
     freeTextPrompt:

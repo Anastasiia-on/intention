@@ -23,6 +23,7 @@ export function startCronJobs(bot: Telegraf<any>): void {
       const time = getZonedTimeString(now);
       void runTomorrowReminders(bot, now, time);
       void runEveningPrompts(bot, now, time);
+      void runWeeklySummary(bot, now, time);
       void runMonthlySummary(bot, now, time);
     },
     { timezone: TIMEZONE }
@@ -107,6 +108,47 @@ async function runMonthlySummary(bot: Telegraf, now: Date, time: string): Promis
   }
 }
 
+async function runWeeklySummary(bot: Telegraf, now: Date, time: string): Promise<void> {
+  const today = getZonedDateString(now);
+  if (!isSundayFromDateString(today)) return;
+  const users = await getUsersByMonthlyTime(time);
+  if (users.length === 0) return;
+  const { start, end } = getWeekRangeForDateString(today);
+  for (const user of users) {
+    const shouldSend = await recordNotification(user.id, "weekly", start, null);
+    if (!shouldSend) continue;
+    const messages = getMessages(user.language);
+    const intentions = await listIntentionsInRange(user.id, start, end);
+    const feedback = await listFeedbackInRange(user.id, start, end);
+    const intentionLines = intentions.map((item) => {
+      if (item.dates.length === 0) return `- ${safeDecrypt(item)}`;
+      const dates = item.dates
+        .map((date) => formatDateForUser(date, user.language))
+        .filter((date) => date.length > 0)
+        .join(", ");
+      return dates.length > 0 ? `- ${safeDecrypt(item)} (${dates})` : `- ${safeDecrypt(item)}`;
+    });
+    const feedbackLines = feedback.map((item) => {
+      const text = safeDecrypt(item);
+      const label = text ? text : messages.photoReflection;
+      const dateLabel = formatDateForUser(item.date, user.language);
+      return `- ${dateLabel}: ${label}`;
+    });
+    const body = [
+      messages.weeklySummaryTitle,
+      "",
+      messages.weeklyIntentionsHeader,
+      ...(intentionLines.length > 0 ? intentionLines : ["-"]),
+      "",
+      messages.weeklyFeedbackHeader,
+      ...(feedbackLines.length > 0 ? feedbackLines : ["-"]),
+      "",
+      messages.weeklySummaryFooter,
+    ].join("\n");
+    await bot.telegram.sendMessage(user.telegram_id, body);
+  }
+}
+
 function getZonedDateString(date: Date): string {
   const parts = getZonedParts(date);
   return `${parts.year}-${parts.month}-${parts.day}`;
@@ -164,6 +206,22 @@ function getMonthRangeForDateString(dateStr: string): { start: string; end: stri
   const [year, month] = dateStr.split("-").map(Number);
   const start = new Date(Date.UTC(year, month - 1, 1));
   const end = new Date(Date.UTC(year, month, 0));
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+}
+
+function isSundayFromDateString(dateStr: string): boolean {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCDay() === 0;
+}
+
+function getWeekRangeForDateString(dateStr: string): { start: string; end: string } {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = date.getUTCDay();
+  const offsetFromMonday = (dayOfWeek + 6) % 7;
+  const start = new Date(Date.UTC(year, month - 1, day - offsetFromMonday));
+  const end = new Date(Date.UTC(year, month - 1, day - offsetFromMonday + 6));
   return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
 }
 
