@@ -1,41 +1,31 @@
 import { Context, Markup, Telegraf, session } from "telegraf";
-import type { TelegramEmoji } from "@telegraf/types";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  addCategory,
-  addFeedback,
   addIntention,
   addReflection,
   deleteIntention,
   getUserByTelegramId,
   getIntentionConfig,
-  listCategories,
   listReflectionsForUser,
-  listIntentionsByCategory,
-  listIntentionsByDate,
   listIntentionsForUser,
-  setIntentionCategory,
   setIntentionDate,
   upsertUserLanguage,
   updateIntentionText,
 } from "./db";
 import { decryptText, encryptText } from "./crypto/encryption";
 import { getMessages, tMainMenu } from "./i18n";
-import { formatDate, formatDateForUser } from "./utils";
+import { formatDateForUser } from "./utils";
 import { Language } from "./types";
 import { CALLBACKS, CALLBACK_PATTERNS, callbackData } from "./callbacks";
 import { mainMenuKeyboard } from "./keyboards/mainMenu";
-import { reflectionModeKeyboard, reflectionPromptKeyboard } from "./keyboards/reflection";
+import { reflectionModeKeyboard } from "./keyboards/reflection";
 import { intentionConfigKeyboard } from "./keyboards/replyMenu";
 
 type Step =
   | "awaiting_intention_text"
   | "awaiting_date"
-  | "awaiting_new_category"
   | "awaiting_edit_text"
-  | "awaiting_feedback_text"
-  | "awaiting_feedback_photo"
   | "awaiting_free_text_confirm";
 
 type SessionData = {
@@ -43,9 +33,6 @@ type SessionData = {
   step?: Step;
   intentionId?: number;
   intentionConfigMode?: boolean;
-  feedbackDate?: string;
-  categoryMode?: "attach" | "manage";
-  preselectedCategoryId?: number;
   pendingIntentionText?: string;
   reflectionMode?: boolean;
   reflectionTextParts?: string[];
@@ -104,14 +91,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await showIntentions(ctx);
   });
 
-  bot.hears([tMainMenu("en").categories, tMainMenu("uk").categories], async (ctx) => {
-    if (ctx.session.reflectionMode) return;
-    const user = await requireUser(ctx);
-    if (!user) return;
-    await exitIntentionConfigMode(ctx, user.language, { sendKeyboard: true });
-    await showCategories(ctx);
-  });
-
   bot.hears([tMainMenu("en").reflections, tMainMenu("uk").reflections], async (ctx) => {
     if (ctx.session.reflectionMode) return;
     const user = await requireUser(ctx);
@@ -127,39 +106,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.reply(messages.optionalInfo, mainMenuKeyboard(user.language));
   });
 
-  bot.command("test_evening", async (ctx) => {
-    const user = await requireUser(ctx);
-    if (!user) return;
-    const today = formatDate(new Date());
-    const intentions = await listIntentionsByDate(user.id, today);
-    const messages = getMessages(user.language);
-    if (intentions.length === 0) {
-      await ctx.reply(messages.noIntentionsToday, mainMenuKeyboard(user.language));
-      return;
-    }
-    ctx.session.feedbackDate = today;
-    await ctx.reply(
-      messages.eveningPrompt,
-      Markup.inlineKeyboard([
-        [Markup.button.callback(messages.writeFeedback, CALLBACKS.feedbackWrite)],
-        [Markup.button.callback(messages.addPhoto, CALLBACKS.feedbackPhoto)],
-        [Markup.button.callback(messages.skipToday, CALLBACKS.feedbackSkip)],
-      ])
-    );
-  });
-
-  bot.action(CALLBACKS.feedbackSkip, async (ctx) => {
-    await handleFeedbackAction(ctx, "skip");
-  });
-
-  bot.action(CALLBACKS.feedbackWrite, async (ctx) => {
-    await handleFeedbackAction(ctx, "write");
-  });
-
-  bot.action(CALLBACKS.feedbackPhoto, async (ctx) => {
-    await handleFeedbackAction(ctx, "photo");
-  });
-
   bot.action(CALLBACK_PATTERNS.intentDate, async (ctx) => {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
@@ -167,15 +113,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     ctx.session.step = "awaiting_date";
     ctx.session.intentionId = Number(ctx.match[1]);
     await ctx.reply(getMessages(user.language).chooseDate);
-  });
-
-  bot.action(CALLBACK_PATTERNS.intentCat, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    ctx.session.intentionId = Number(ctx.match[1]);
-    ctx.session.categoryMode = "attach";
-    await showCategoryPicker(ctx, user.language);
   });
 
   bot.action(CALLBACK_PATTERNS.intentDone, async (ctx) => {
@@ -233,87 +170,6 @@ export function createBot(token: string): Telegraf<BotContext> {
     await ctx.reply(getMessages(user.language).intentionDeleted, mainMenuKeyboard(user.language));
   });
 
-  bot.action(CALLBACK_PATTERNS.catPick, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    const intentionId = Number(ctx.match[1]);
-    const categoryId = Number(ctx.match[2]);
-    await setIntentionCategory(user.id, intentionId, categoryId);
-    ctx.session.step = undefined;
-    ctx.session.categoryMode = undefined;
-  });
-
-  bot.action(CALLBACK_PATTERNS.catNew, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    ctx.session.step = "awaiting_new_category";
-    ctx.session.intentionId = Number(ctx.match[1]);
-    ctx.session.categoryMode = "attach";
-    await ctx.reply(getMessages(user.language).categoryPrompt);
-  });
-
-  bot.action(CALLBACKS.catAdd, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    ctx.session.step = "awaiting_new_category";
-    ctx.session.categoryMode = "manage";
-    await ctx.reply(getMessages(user.language).categoryPrompt);
-  });
-
-  bot.action(CALLBACK_PATTERNS.catShow, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    const categoryId = Number(ctx.match[1]);
-    const messages = getMessages(user.language);
-    const categories = await listCategories(user.id);
-    const category = categories.find((item) => item.id === categoryId);
-    const intentions = await listIntentionsByCategory(user.id, categoryId);
-    if (intentions.length === 0) {
-      await ctx.reply(
-        `${messages.categoryEmpty}\n${messages.addFirstIntention}`,
-        Markup.inlineKeyboard([
-          [Markup.button.callback(messages.mainMenu.add, callbackData.catAddIntention(categoryId))],
-        ])
-      );
-      return;
-    }
-    const buttons = intentions.map((item) => {
-      const text = safeDecrypt(item);
-      const dateLabel = item.date ? formatDateForUser(item.date, user.language) : null;
-      const label = dateLabel ? `${text} - ${dateLabel}` : text;
-      return [Markup.button.callback(trimText(label), callbackData.intentSelect(item.id))];
-    });
-    const header = category?.name
-      ? user.language === "uk"
-        ? `Мої ${category.name} наміри`
-        : `My ${category.name} intentions`
-      : messages.intentionsHeader;
-    await ctx.reply(header, Markup.inlineKeyboard(buttons));
-  });
-
-  bot.action(CALLBACK_PATTERNS.catAddIntention, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    await startAddIntention(ctx, Number(ctx.match[1]));
-  });
-
-  bot.action(CALLBACKS.catBack, async (ctx) => {
-    await ctx.answerCbQuery();
-    const user = await requireUser(ctx);
-    if (!user) return;
-    await showCategories(ctx);
-  });
-
-  bot.action(CALLBACKS.startNewMonth, async (ctx) => {
-    await ctx.answerCbQuery();
-    await startAddIntention(ctx);
-  });
-
   bot.action(CALLBACKS.freeTextYes, async (ctx) => {
     await ctx.answerCbQuery();
     const user = await requireUser(ctx);
@@ -325,7 +181,7 @@ export function createBot(token: string): Telegraf<BotContext> {
       return;
     }
     const encrypted = encryptText(text);
-    const intention = await addIntention(user.id, null, encrypted);
+    const intention = await addIntention(user.id, encrypted);
     ctx.session.step = undefined;
     ctx.session.intentionId = intention.id;
     await enterIntentionConfigMode(ctx, user.id, user.language, intention.id);
@@ -355,15 +211,6 @@ export function createBot(token: string): Telegraf<BotContext> {
       collectReflectionPhoto(ctx);
       return;
     }
-    if (ctx.session.step !== "awaiting_feedback_photo") return;
-    const user = await requireUser(ctx);
-    if (!user) return;
-    const photo = ctx.message.photo[ctx.message.photo.length - 1];
-    const encrypted = encryptText("");
-    const date = ctx.session.feedbackDate || formatDate(new Date());
-    await addFeedback(user.id, date, encrypted, photo.file_id, null);
-    clearSession(ctx);
-    await ctx.reply(getMessages(user.language).photoSaved, mainMenuKeyboard(user.language));
   });
 
   bot.on("text", async (ctx) => {
@@ -383,15 +230,8 @@ export function createBot(token: string): Telegraf<BotContext> {
         const intentionId = ctx.session.intentionId;
         if (!intentionId) return;
         ctx.session.step = "awaiting_date";
-        const keyboard = await buildIntentionConfigKeyboard(user, intentionId);
+        const keyboard = await buildIntentionConfigKeyboard(user);
         await ctx.reply(messages.chooseDate, keyboard);
-        return;
-      }
-      if (action === "add_category") {
-        const intentionId = ctx.session.intentionId;
-        if (!intentionId) return;
-        ctx.session.categoryMode = "attach";
-        await showCategoryPicker(ctx, user.language);
         return;
       }
       if (action === "done") {
@@ -422,9 +262,7 @@ export function createBot(token: string): Telegraf<BotContext> {
         return;
       }
       const encrypted = encryptText(text);
-      const categoryId = ctx.session.preselectedCategoryId ?? null;
-      const intention = await addIntention(user.id, categoryId, encrypted);
-      ctx.session.preselectedCategoryId = undefined;
+      const intention = await addIntention(user.id, encrypted);
       ctx.session.step = undefined;
       ctx.session.intentionId = intention.id;
       await enterIntentionConfigMode(ctx, user.id, user.language, intention.id);
@@ -440,31 +278,7 @@ export function createBot(token: string): Telegraf<BotContext> {
       const intentionId = ctx.session.intentionId;
       if (!intentionId) return;
       await setIntentionDate(user.id, intentionId, text);
-      ctx.session.step = undefined;
-      await tryReact(ctx, "👍");
-      return;
-    }
-
-    if (ctx.session.step === "awaiting_new_category") {
-      if (!text) {
-        await ctx.reply(messages.categoryPrompt);
-        return;
-      }
-      const category = await addCategory(user.id, text);
-      if (ctx.session.categoryMode === "attach" && ctx.session.intentionId) {
-        await setIntentionCategory(user.id, ctx.session.intentionId, category.id);
-        ctx.session.step = undefined;
-        ctx.session.categoryMode = undefined;
-        await tryReact(ctx, "👍");
-        return;
-      }
-      clearSession(ctx);
-      await ctx.reply(
-        messages.addIntentionAfterCategoryPrompt,
-        Markup.inlineKeyboard([
-          [Markup.button.callback(messages.mainMenu.add, callbackData.catAddIntention(category.id))],
-        ])
-      );
+      await finalizeIntentionConfig(ctx, user, intentionId);
       return;
     }
 
@@ -479,18 +293,6 @@ export function createBot(token: string): Telegraf<BotContext> {
       clearSession(ctx);
       await ctx.reply(messages.intentionUpdated, mainMenuKeyboard(user.language));
       return;
-    }
-
-    if (ctx.session.step === "awaiting_feedback_text") {
-      if (!text || text.startsWith("/")) {
-        await ctx.reply(messages.feedbackTextPrompt);
-        return;
-      }
-      const encrypted = encryptText(text);
-      const date = ctx.session.feedbackDate || formatDate(new Date());
-      await addFeedback(user.id, date, encrypted, null, null);
-      clearSession(ctx);
-      await ctx.reply(messages.feedbackSaved, mainMenuKeyboard(user.language));
     }
 
     if (ctx.session.step === "awaiting_free_text_confirm") {
@@ -537,13 +339,10 @@ async function sendIntroAndMenu(ctx: BotContext, language: Language): Promise<vo
   );
 }
 
-async function startAddIntention(ctx: BotContext, preselectedCategoryId?: number): Promise<void> {
+async function startAddIntention(ctx: BotContext): Promise<void> {
   const user = await requireUser(ctx);
   if (!user) return;
   clearSession(ctx);
-  if (preselectedCategoryId) {
-    ctx.session.preselectedCategoryId = preselectedCategoryId;
-  }
   ctx.session.step = "awaiting_intention_text";
   await ctx.reply(getMessages(user.language).addPrompt, mainMenuKeyboard(user.language));
 }
@@ -571,25 +370,6 @@ async function showIntentions(ctx: BotContext): Promise<void> {
   await ctx.reply(messages.intentionsHeader, Markup.inlineKeyboard(buttons));
 }
 
-async function showCategories(ctx: BotContext): Promise<void> {
-  const user = await requireUser(ctx);
-  if (!user) return;
-  const messages = getMessages(user.language);
-  const categories = await listCategories(user.id);
-  if (categories.length === 0) {
-    await ctx.reply(
-      messages.noCategories,
-      Markup.inlineKeyboard([[Markup.button.callback(messages.addNewCategory, CALLBACKS.catAdd)]])
-    );
-    return;
-  }
-  const buttons = categories.map((category) => [
-    Markup.button.callback(category.name, callbackData.catShow(category.id)),
-  ]);
-  buttons.push([Markup.button.callback(messages.addNewCategory, CALLBACKS.catAdd)]);
-  await ctx.reply(messages.categoriesHeader, Markup.inlineKeyboard(buttons));
-}
-
 async function showReflections(ctx: BotContext): Promise<void> {
   const user = await requireUser(ctx);
   if (!user) return;
@@ -603,7 +383,7 @@ async function showReflections(ctx: BotContext): Promise<void> {
   for (const item of reflections) {
     const text = safeDecrypt(item);
     const dateLabel = formatDateForUser(item.date, user.language);
-    const label = text ? text : messages.photoReflection;
+    const label = text ? text : " ";
     const caption = `${dateLabel}: ${label}`;
     if (item.photo_file_ids && item.photo_file_ids.length > 0) {
       const [first, ...rest] = item.photo_file_ids;
@@ -615,26 +395,6 @@ async function showReflections(ctx: BotContext): Promise<void> {
     }
     await ctx.reply(caption);
   }
-}
-
-async function showCategoryPicker(ctx: BotContext, language: Language): Promise<void> {
-  const messages = getMessages(language);
-  const user = await requireUser(ctx);
-  if (!user) return;
-  const categories = await listCategories(user.id);
-  if (categories.length === 0) {
-    await ctx.reply(messages.categoryPrompt);
-    ctx.session.step = "awaiting_new_category";
-    ctx.session.categoryMode = "attach";
-    return;
-  }
-  const intentionId = ctx.session.intentionId;
-  if (!intentionId) return;
-  const buttons = categories.map((category) => [
-    Markup.button.callback(category.name, callbackData.catPick(intentionId, category.id)),
-  ]);
-  buttons.push([Markup.button.callback(messages.addNewCategory, callbackData.catNew(intentionId))]);
-  await ctx.reply(messages.chooseCategory, Markup.inlineKeyboard(buttons));
 }
 
 async function requireUser(ctx: BotContext): Promise<{ id: number; language: Language } | null> {
@@ -653,10 +413,7 @@ function clearSession(ctx: BotContext): void {
   ctx.session.step = undefined;
   ctx.session.intentionId = undefined;
   ctx.session.intentionConfigMode = undefined;
-  ctx.session.feedbackDate = undefined;
-  ctx.session.categoryMode = undefined;
   ctx.session.pendingIntentionText = undefined;
-  ctx.session.preselectedCategoryId = undefined;
 }
 
 function clearReflectionSession(ctx: BotContext): void {
@@ -664,28 +421,6 @@ function clearReflectionSession(ctx: BotContext): void {
   ctx.session.reflectionTextParts = undefined;
   ctx.session.reflectionPhotoFileIds = undefined;
   ctx.session.reflectionStartedAt = undefined;
-}
-
-async function handleFeedbackAction(
-  ctx: BotContext,
-  action: "write" | "photo" | "skip"
-): Promise<void> {
-  await ctx.answerCbQuery();
-  const user = await requireUser(ctx);
-  if (!user) return;
-  const messages = getMessages(user.language);
-  if (action === "skip") {
-    clearSession(ctx);
-    await ctx.reply(messages.skipToday, mainMenuKeyboard(user.language));
-    return;
-  }
-  if (action === "write") {
-    ctx.session.step = "awaiting_feedback_text";
-    await ctx.reply(messages.feedbackTextPrompt);
-    return;
-  }
-  ctx.session.step = "awaiting_feedback_photo";
-  await ctx.reply(messages.photoPrompt);
 }
 
 async function startReflectionMode(ctx: BotContext, language: Language): Promise<void> {
@@ -747,20 +482,6 @@ async function cancelReflection(ctx: BotContext, language: Language): Promise<vo
   await ctx.reply(getMessages(language).reflectionCancelAck, mainMenuKeyboard(language));
 }
 
-function scheduleReflectionPrompt(ctx: BotContext, language: Language): void {
-  const chatId = ctx.chat?.id;
-  if (!chatId) return;
-  const telegram = ctx.telegram;
-  const messages = getMessages(language);
-  setTimeout(() => {
-    telegram
-      .sendMessage(chatId, messages.reflectionPrompt, reflectionPromptKeyboard(language))
-      .catch(() => {
-        // Ignore delivery failures for delayed prompts.
-      });
-  }, 10_000);
-}
-
 function validateDateInput(input: string, messages: ReturnType<typeof getMessages>): string | null {
   const trimmed = input.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
@@ -813,14 +534,6 @@ async function sendWelcomeImage(ctx: BotContext, caption?: string): Promise<void
   await ctx.replyWithPhoto({ source }, caption ? { caption } : undefined);
 }
 
-async function tryReact(ctx: BotContext, emoji: TelegramEmoji): Promise<void> {
-  try {
-    await ctx.react(emoji);
-  } catch {
-    // Ignore reaction failures (e.g., unsupported by client or bot API).
-  }
-}
-
 async function enterIntentionConfigMode(
   ctx: BotContext,
   userId: number,
@@ -831,24 +544,21 @@ async function enterIntentionConfigMode(
   if (!config) return;
   ctx.session.intentionConfigMode = true;
   ctx.session.intentionId = intentionId;
-  const keyboard = intentionConfigKeyboard(language, !config.category_id);
+  const keyboard = intentionConfigKeyboard(language);
   await ctx.reply(getMessages(language).configMenuPrompt, keyboard);
 }
 
 async function buildIntentionConfigKeyboard(
   user: { id: number; language: Language },
-  intentionId: number
 ) {
-  const config = await getIntentionConfig(user.id, intentionId);
-  return intentionConfigKeyboard(user.language, !config?.category_id);
+  return intentionConfigKeyboard(user.language);
 }
 
 function getIntentionConfigAction(
   text: string,
   messages: ReturnType<typeof getMessages>
-): "add_date" | "add_category" | "done" | null {
+): "add_date" | "done" | null {
   if (text === messages.addDateAction) return "add_date";
-  if (text === messages.addCategoryAction) return "add_category";
   if (text === messages.doneAction) return "done";
   return null;
 }
@@ -868,7 +578,6 @@ async function finalizeIntentionConfig(
   const messages = getMessages(user.language);
   clearSession(ctx);
   await ctx.reply(messages.savedSummaryTitle, mainMenuKeyboard(user.language));
-  scheduleReflectionPrompt(ctx, user.language);
 }
 
 async function exitIntentionConfigMode(
@@ -880,8 +589,7 @@ async function exitIntentionConfigMode(
   ctx.session.intentionConfigMode = undefined;
   ctx.session.intentionId = undefined;
   ctx.session.step = undefined;
-  ctx.session.categoryMode = undefined;
   if (options.sendKeyboard) {
-    await ctx.reply("show", mainMenuKeyboard(language));
+    await ctx.reply(getMessages(language).mainMenuTitle, mainMenuKeyboard(language));
   }
 }

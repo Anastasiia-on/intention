@@ -7,7 +7,6 @@ export function reflectionPromptKeyboard(language: Language) {
   const messages = getMessages(language);
   return Markup.inlineKeyboard([
     [Markup.button.callback(messages.reflectionYes, CALLBACKS.reflectYes)],
-    [Markup.button.callback(messages.reflectionNo, CALLBACKS.reflectNo)],
   ]);
 }
 
