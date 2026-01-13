@@ -8,6 +8,7 @@ import {
 } from "./db";
 import { decryptText } from "./crypto/encryption";
 import { getMessages } from "./i18n";
+import { reflectionPromptKeyboard } from "./keyboards/reflection";
 const TIMEZONE = "Europe/Madrid";
 
 export function startCronJobs(bot: Telegraf<any>): void {
@@ -52,7 +53,8 @@ async function runEveningPrompts(bot: Telegraf, now: Date, time: string): Promis
       const line = safeDecrypt(intention);
       await bot.telegram.sendMessage(
         user.telegram_id,
-        [messages.eveningPrompt, `- ${line}`].join("\n")
+        [messages.eveningPrompt, `- ${line}`].join("\n"),
+        reflectionPromptKeyboard(user.language)
       );
     }
   }
