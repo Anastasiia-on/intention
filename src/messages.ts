@@ -84,7 +84,7 @@ export const messages: Record<Language, Messages> = {
       show: "Show all my intentions",
       reflections: "Show all reflections",
     },
-    addPrompt: "Write your intention for today",
+    addPrompt: "What is your intention?",
     chooseDate:
       "Please, pick a date\n" +
       "format YYYY-MM-DD\n" +
@@ -165,7 +165,7 @@ export const messages: Record<Language, Messages> = {
     mainMenuTitle: "Головне меню",
     mainMenu: {
       add: "Додати намір",
-      show: "Мої нотатки ",
+      show: "Мої наміри ✨",
       reflections: "Мої відгуки",
     },
     addPrompt: "Напиши свій намір",

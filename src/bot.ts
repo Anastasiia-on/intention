@@ -219,6 +219,20 @@ export function createBot(token: string): Telegraf<BotContext> {
     if (!user) return;
     const messages = getMessages(user.language);
     const text = ctx.message.text.trim();
+    const menuEn = tMainMenu("en");
+    const menuUk = tMainMenu("uk");
+    if (
+      text === menuEn.add ||
+      text === menuEn.show ||
+      text === menuEn.reflections ||
+      text === menuUk.add ||
+      text === menuUk.show ||
+      text === menuUk.reflections ||
+      text === "English" ||
+      text === "Українська"
+    ) {
+      return;
+    }
 
     if (ctx.session.reflectionMode) {
       await handleReflectionInput(ctx, user, text);
