@@ -4,6 +4,9 @@ export const CALLBACKS = {
   freeTextNo: "free_text_no",
   reflectYes: "REFLECT_YES",
   reflectNo: "REFLECT_NO",
+  broadcastYes: "BROADCAST_YES",
+  broadcastNo: "BROADCAST_NO",
+  refreshMenu: "REFRESH_MENU",
 } as const;
 
 export const CALLBACK_PREFIX = {
@@ -13,6 +16,7 @@ export const CALLBACK_PREFIX = {
   intentAddDate: "intent_add_date:",
   intentEdit: "intent_edit:",
   intentDelete: "intent_delete:",
+  reflectYes: "REFLECT_YES:",
 } as const;
 
 export const CALLBACK_PATTERNS = {
@@ -22,6 +26,7 @@ export const CALLBACK_PATTERNS = {
   intentAddDate: new RegExp(`^${CALLBACK_PREFIX.intentAddDate}(\\d+)$`),
   intentEdit: new RegExp(`^${CALLBACK_PREFIX.intentEdit}(\\d+)$`),
   intentDelete: new RegExp(`^${CALLBACK_PREFIX.intentDelete}(\\d+)$`),
+  reflectYes: new RegExp(`^${CALLBACK_PREFIX.reflectYes}(\\d+)$`),
 } as const;
 
 export const callbackData = {
@@ -31,4 +36,5 @@ export const callbackData = {
   intentAddDate: (id: number) => `${CALLBACK_PREFIX.intentAddDate}${id}`,
   intentEdit: (id: number) => `${CALLBACK_PREFIX.intentEdit}${id}`,
   intentDelete: (id: number) => `${CALLBACK_PREFIX.intentDelete}${id}`,
+  reflectYes: (id: number) => `${CALLBACK_PREFIX.reflectYes}${id}`,
 } as const;

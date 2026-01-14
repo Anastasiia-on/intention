@@ -41,20 +41,31 @@ async function runMorningReminders(bot: Telegraf, now: Date, time: string): Prom
 
 async function runEveningPrompts(bot: Telegraf, now: Date, time: string): Promise<void> {
   const users = await getUsersByEveningTime(time);
+  console.log("users")
+  console.log(users)
+  const today2 = getZonedDateString(now);
+  console.log(today2)
   if (users.length === 0) return;
   const today = getZonedDateString(now);
   for (const user of users) {
     const intentions = await listIntentionsByDate(user.id, today);
+    console.log(intentions)
     if (intentions.length === 0) continue;
+    console.log('messages')
     const messages = getMessages(user.language);
+    console.log(messages)
     for (const intention of intentions) {
       const shouldSend = await recordNotification(user.id, "evening", today, intention.id);
+      console.log('shouldSend')
+      console.log(shouldSend)
+      console.log(user)
       if (!shouldSend) continue;
+      console.log('shouldSend2')
       const line = safeDecrypt(intention);
       await bot.telegram.sendMessage(
         user.telegram_id,
         [messages.eveningPrompt, `- ${line}`].join("\n"),
-        reflectionPromptKeyboard(user.language)
+        reflectionPromptKeyboard(user.language, intention.id)
       );
     }
   }

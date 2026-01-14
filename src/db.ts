@@ -20,7 +20,7 @@ const pool = new Pool({
 
 export async function getUserByTelegramId(telegramId: number): Promise<User | null> {
   const result = await pool.query<User>(
-    `SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at FROM users WHERE telegram_id = $1`,
+    `SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, is_admin, created_at FROM users WHERE telegram_id = $1`,
     [telegramId]
   );
   return result.rows[0] || null;
@@ -41,7 +41,7 @@ export async function upsertUserLanguage(
       first_name = EXCLUDED.first_name,
       last_name = EXCLUDED.last_name,
       username = EXCLUDED.username
-    RETURNING id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
+    RETURNING id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, is_admin, created_at
     `,
     [telegramId, language, profile.firstName ?? null, profile.lastName ?? null, profile.username ?? null]
   );
@@ -67,7 +67,7 @@ export async function updateUserProfile(
 export async function getUsersByReminderTime(time: string): Promise<User[]> {
   const result = await pool.query<User>(
     `
-    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
+    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, is_admin, created_at
     FROM users
     WHERE reminder_time = $1
     `,
@@ -79,7 +79,7 @@ export async function getUsersByReminderTime(time: string): Promise<User[]> {
 export async function getUsersByEveningTime(time: string): Promise<User[]> {
   const result = await pool.query<User>(
     `
-    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
+    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, is_admin, created_at
     FROM users
     WHERE evening_time = $1
     `,
@@ -91,7 +91,7 @@ export async function getUsersByEveningTime(time: string): Promise<User[]> {
 export async function getUsersByMonthlyTime(time: string): Promise<User[]> {
   const result = await pool.query<User>(
     `
-    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, created_at
+    SELECT id, telegram_id, language, first_name, last_name, username, reminder_time, evening_time, monthly_time, is_admin, created_at
     FROM users
     WHERE monthly_time = $1
     `,
@@ -100,13 +100,59 @@ export async function getUsersByMonthlyTime(time: string): Promise<User[]> {
   return result.rows;
 }
 
-export async function listReflectionsForUser(userId: number): Promise<Reflection[]> {
-  const result = await pool.query<Reflection>(
+export async function ensureAdminUser(telegramId: number): Promise<void> {
+  await pool.query(
     `
-    SELECT id, user_id, date, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids, created_at
-    FROM reflections
-    WHERE user_id = $1
-    ORDER BY date DESC, id DESC
+    UPDATE users
+    SET is_admin = true
+    WHERE telegram_id = $1 AND is_admin = false
+    `,
+    [telegramId]
+  );
+}
+
+export async function listUsersForBroadcast(): Promise<Array<{ id: number; telegram_id: number; language: Language }>> {
+  const result = await pool.query<{ id: number; telegram_id: number; language: Language }>(
+    `
+    SELECT id, telegram_id, language
+    FROM users
+    `
+  );
+  return result.rows;
+}
+
+export async function listReflectionsForUser(
+  userId: number
+): Promise<Array<Reflection & {
+  intention_ciphertext_b64: string | null;
+  intention_iv_b64: string | null;
+  intention_auth_tag_b64: string | null;
+}>> {
+  const result = await pool.query<
+    Reflection & {
+      intention_ciphertext_b64: string | null;
+      intention_iv_b64: string | null;
+      intention_auth_tag_b64: string | null;
+    }
+  >(
+    `
+    SELECT
+      r.id,
+      r.user_id,
+      r.date,
+      r.intention_id,
+      r.ciphertext_b64,
+      r.iv_b64,
+      r.auth_tag_b64,
+      r.photo_file_ids,
+      r.created_at,
+      i.ciphertext_b64 AS intention_ciphertext_b64,
+      i.iv_b64 AS intention_iv_b64,
+      i.auth_tag_b64 AS intention_auth_tag_b64
+    FROM reflections r
+    LEFT JOIN intentions i ON i.id = r.intention_id
+    WHERE r.user_id = $1
+    ORDER BY r.date DESC, r.id DESC
     `,
     [userId]
   );
@@ -246,17 +292,19 @@ export async function addReflection(
   userId: number,
   date: string,
   encrypted: EncryptedPayload,
-  photoFileIds: string[]
+  photoFileIds: string[],
+  intentionId?: number | null
 ): Promise<Reflection> {
   const result = await pool.query<Reflection>(
     `
-    INSERT INTO reflections (user_id, date, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id, user_id, date, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids, created_at
+    INSERT INTO reflections (user_id, date, intention_id, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING id, user_id, date, intention_id, ciphertext_b64, iv_b64, auth_tag_b64, photo_file_ids, created_at
     `,
     [
       userId,
       date,
+      intentionId ?? null,
       encrypted.ciphertext_b64,
       encrypted.iv_b64,
       encrypted.auth_tag_b64,

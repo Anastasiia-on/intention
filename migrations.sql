@@ -10,6 +10,7 @@ ALTER TABLE users ALTER COLUMN evening_time SET DEFAULT '20:00';
 UPDATE users SET evening_time = '20:00' WHERE evening_time IS NOT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_time TEXT NOT NULL DEFAULT '19:00';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS notifications (
   id SERIAL PRIMARY KEY,
@@ -32,12 +33,15 @@ CREATE TABLE IF NOT EXISTS reflections (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
+  intention_id INTEGER REFERENCES intentions(id) ON DELETE SET NULL,
   ciphertext_b64 TEXT NOT NULL,
   iv_b64 TEXT NOT NULL,
   auth_tag_b64 TEXT NOT NULL,
   photo_file_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE reflections ADD COLUMN IF NOT EXISTS intention_id INTEGER REFERENCES intentions(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_intentions_user_id ON intentions(user_id);
 CREATE INDEX IF NOT EXISTS idx_intention_dates_date ON intention_dates(date);

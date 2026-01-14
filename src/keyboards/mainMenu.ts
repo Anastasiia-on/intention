@@ -1,8 +1,12 @@
 import { Markup } from "telegraf";
-import { tMainMenu } from "../i18n";
+import { getMessages, tMainMenu } from "../i18n";
 import { Language } from "../types";
 
-export function mainMenuKeyboard(language: Language) {
+export function mainMenuKeyboard(language: Language, opts?: { isAdmin?: boolean }) {
   const menu = tMainMenu(language);
-  return Markup.keyboard([[menu.add], [menu.show], [menu.reflections]]).resize();
+  const rows: string[][] = [[menu.add], [menu.show], [menu.reflections]];
+  if (opts?.isAdmin) {
+    rows.push([getMessages(language).broadcastButton]);
+  }
+  return Markup.keyboard(rows).resize();
 }

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   reminder_time TEXT NOT NULL DEFAULT '08:00',
   evening_time TEXT NOT NULL DEFAULT '20:00',
   monthly_time TEXT NOT NULL DEFAULT '19:00',
+  is_admin BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS reflections (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
+  intention_id INTEGER REFERENCES intentions(id) ON DELETE SET NULL,
   ciphertext_b64 TEXT NOT NULL,
   iv_b64 TEXT NOT NULL,
   auth_tag_b64 TEXT NOT NULL,

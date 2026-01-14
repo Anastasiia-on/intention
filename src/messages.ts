@@ -48,6 +48,10 @@ export type Messages = {
   reflectionCancel: string;
   reflectionSaved: string;
   reflectionCancelAck: string;
+  broadcastButton: string;
+  broadcastBody: string;
+  refreshMenuButton: string;
+  broadcastSummary: string;
 };
 
 export const messages: Record<Language, Messages> = {
@@ -78,40 +82,41 @@ export const messages: Record<Language, Messages> = {
       "I’ll help you wrap things up with care ✨",
     ].join("\n"),
     learnMore: "Learn more",
-    mainMenuTitle: "Main menu",
+    mainMenuTitle: "Lets continue 🤍",
     mainMenu: {
-      add: "Add your intention",
-      show: "Show all my intentions",
-      reflections: "Show all reflections",
+      add: "Add intention ✨",
+      show: "My intentions 🤍",
+      reflections: "My reflections 📝",
     },
-    addPrompt: "What is your intention?",
+    addPrompt: "Please, write down your intention",
     chooseDate:
-      "Please, pick a date\n" +
-      "format YYYY-MM-DD\n" +
-      "example 2026-01-05",
+      "You can add a date in any comfortable format\n" +
+      "(e.g. January 20 or 20.01.2026)\",",
     invalidDateFormat:
-      "Format should be YYYY-MM-DD\n" +
-      "example 2026-01-05",
+      "Let's try in this format 01.01.2026",
     invalidDateCalendar:
       "This date does not exist\n" +
       "try a real calendar date",
     invalidDatePast:
-      "Please choose a date after today",
-    noIntentions: "No intentions yet",
-    noReflections: "No reflections yet",
-    intentionsHeader: "My intentions",
+      "Please choose today or a future date",
+    noIntentions: "No intentions yet,\n" +
+      "but you can always add them 🤍",
+    noReflections: "No reflections yet,\n" +
+      "but you can always add them from your intentions menu 🤍",
+    intentionsHeader: "Here are your intentions 🤍\n" +
+      "You can tap on any of them to edit it\n" +
+      "and add a reflection right there",
     reflectionsHeader: "My reflections",
-    editIntention: "Edit",
+    editIntention: "Edit intention",
     deleteIntention: "Delete",
     addDate: "Add date",
     editDate: "Edit date",
     intentionUpdated: "Updated ✨",
     intentionDeleted: "Deleted",
-    otherAction:
-      "What would you like to do next",
+    otherAction: "What would you like to do next",
     addDateAction: "Add date",
-    doneAction: "Done",
-    configMenuPrompt: "Add date to this intention?",
+    doneAction: "Save without date",
+    configMenuPrompt: "What do you want to do next?",
     configPrompt:
       "What would you like to add",
     savedSummaryTitle:
@@ -133,12 +138,22 @@ export const messages: Record<Language, Messages> = {
     reflectionYes: "Leave reflection",
     reflectionNo: "Not today",
     reflectionInstructions:
-      "You can send a text and or a photo\n" +
-      "When you’re ready, tap Done",
+      "You can write a text or send a photo 🤍\n" +
+      "When you’re ready, tap Done in the main menu\n" +
+      "Or choose Not today if you’d like to skip",
     reflectionDone: "Done",
     reflectionCancel: "Not today",
     reflectionSaved: "Saved ✨",
-    reflectionCancelAck: "Ok",
+    reflectionCancelAck: "You can always add a note later from your intentions menu 🤍",
+    broadcastButton: "📣 Broadcast",
+    broadcastBody: "Hey 🤍\n\n" +
+      "The bot got a small update\n" +
+      "You can now edit intentions, leave reflections under them,\n" +
+      "and write dates in any format that feels right for you\n\n" +
+      "Thank you for being here 🤍\n" +
+      "If you notice anything that could be made better or more comfortable, feel free to share it with me anytime @an_anastasiya",
+    refreshMenuButton: "Refresh the bot 🤍",
+    broadcastSummary: "Broadcast sent.\nSent: {sent}\nFailed: {failed}",
   },
   uk: {
     intro:
@@ -162,37 +177,41 @@ export const messages: Record<Language, Messages> = {
       "А наприкінці місяця допоможу підсумувати пройдений шлях ✨",
     ].join("\n"),
     learnMore: "Дізнатись більше",
-    mainMenuTitle: "Головне меню",
+    mainMenuTitle: "Давай продовжимо 🤍",
     mainMenu: {
-      add: "Додати намір",
-      show: "Мої наміри ✨",
-      reflections: "Мої відгуки",
+      add: "Додати намір ✨",
+      show: "Мої наміри 🤍",
+      reflections: "Мої нотатки 📝",
     },
-    addPrompt: "Напиши свій намір",
-    chooseDate: "Можеш додати дату у форматі YYYY-MM-DD",
+    addPrompt: "Напиши свій намір 🤍",
+    chooseDate: "Можеш додати дату у більш зручному для тебе форматі\n" +
+      "(наприклад 20 січня або 20.01.2026)",
     invalidDateFormat:
-      "Можеш додати дату у форматі YYYY-MM-DD" +
-      "приклад 2026-01-05",
+      "Можеш додати дату у зручному для тебе форматі\n" +
+      "(наприклад: 20 січня або 20.01.2026)",
     invalidDateCalendar:
       "Такої дати не існує\n" +
       "спробуй реальну календарну дату",
     invalidDatePast:
-      "Обери, будь ласка, дату пізніше за сьогодні",
-    noIntentions: "Поки що немає намірів",
-    noReflections: "Поки що немає відгуків",
-    intentionsHeader: "Мої наміри",
-    reflectionsHeader: "Мої відгуки",
+      "Обери, будь ласка, сьогоднішню або майбутню дату",
+    noIntentions: "Поки що немає намірів\n" +
+      "Але ти завжди можеш додати запис з головного меню 🤍",
+    noReflections: "Поки що немає записів\n" +
+      "Але ти завжди можеш додати запис з головного меню намірів 🤍",
+    intentionsHeader: "Ось твої наміри 🤍\n" +
+      "Ти можеш натиснути на будь-який з них,\n" +
+      "щоб відредагувати його та залишити нотатки прямо там",
+    reflectionsHeader: "Ось твої записи ✨",
     editIntention: "Редагувати",
     deleteIntention: "Видалити",
     addDate: "Додати дату",
     editDate: "Змінити дату",
     intentionUpdated: "Оновлено",
     intentionDeleted: "Видалено",
-    otherAction:
-      "Що хочеш зробити далі",
+    otherAction: "Що зробимо далі?",
     addDateAction: "Додати дату",
-    doneAction: "Готово",
-    configMenuPrompt: "Додати дату до цього наміру?",
+    doneAction: "Зберегти без дати",
+    configMenuPrompt: "Що хочеш зробити далі?",
     configPrompt:
       "Що додамо до цього наміру",
     savedSummaryTitle:
@@ -217,11 +236,22 @@ export const messages: Record<Language, Messages> = {
     reflectionYes: "Залишити відгук",
     reflectionNo: "Не сьогодні",
     reflectionInstructions:
-      "Можеш надіслати текст та або фото\n" +
-      "Коли будеш готова - натисни \"Готово\"",
+      "Ти можеш написати текст або надіслати фото 🤍\n" +
+      "Коли будеш готовий/готова натисни Готово у головному меню\n" +
+      "Або обери Не сьогодні, якщо хочеш пропустити",
     reflectionDone: "Готово",
     reflectionCancel: "Не сьогодні",
     reflectionSaved: "Збережено ✨",
-    reflectionCancelAck: "Добре",
+    reflectionCancelAck: "Ти завжди можеш додати запис пізніше з меню своїх намірень 🤍",
+    broadcastButton: "📣 Broadcast",
+    broadcastBody: "Привіт 🤍\n\n" +
+      "Бот отримав невелике оновлення:\n" +
+      "•тепер можна редагувати наміри\n" +
+      "•залишати під ними нотатки\n" +
+      "•та писати дату в більш зручному форматі\n\n" +
+      "Дякую, що ти тут 🤍\n" +
+      "Якщо помітиш щось, що можна зробити краще або зручніше завжди можеш поділитися зі мною  @an_anastasiya",
+    refreshMenuButton: "Підтягнути оновлення 🤍",
+    broadcastSummary: "Розсилка надіслана.\nНадіслано: {sent}\nПомилок: {failed}",
   },
 };

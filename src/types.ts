@@ -16,6 +16,7 @@ export type User = {
   reminder_time: string;
   evening_time: string;
   monthly_time: string;
+  is_admin: boolean;
   created_at: string;
 };
 
@@ -33,6 +34,7 @@ export type Reflection = {
   id: number;
   user_id: number;
   date: string;
+  intention_id: number | null;
   photo_file_ids: string[];
   created_at: string;
 } & EncryptedPayload;
