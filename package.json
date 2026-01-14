@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "chrono-node": "^2.7.8",
     "node-cron": "^3.0.3",
     "pg": "^8.11.5",
     "telegraf": "^4.16.3"
